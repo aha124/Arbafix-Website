@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ArrowRight, ChevronDown } from "lucide-react";
 
 export default function Hero() {
@@ -33,27 +34,17 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Right Content - Image Placeholder */}
+          {/* Right Content - Hero Image */}
           <div className="relative">
-            <div className="aspect-[4/3] bg-bg-light rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center">
-              <div className="text-center p-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-text-body"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <p className="text-text-body font-medium">Console repair image</p>
-              </div>
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-xl">
+              <Image
+                src="/hero-console-repair.png"
+                alt="Professional video game console repair"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority
+              />
             </div>
             {/* Decorative element */}
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-primary/10 rounded-2xl -z-10"></div>

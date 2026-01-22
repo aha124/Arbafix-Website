@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RepairStatus {
+  PENDING
+  QUOTED
+  APPROVED
+  RECEIVED
+  IN_PROGRESS
+  COMPLETED
+  SHIPPED
+}
+
+model RepairRequest {
+  id               String       @id @default(cuid())
+  ticketNumber     String       @unique
+  status           RepairStatus @default(PENDING)
+  deviceType       String
+  issueDescription String       @db.Text
+  commonIssues     String[]
+  customerName     String
+  customerEmail    String
+  customerPhone    String?
+  shippingAddress  String
+  shippingCity     String
+  shippingState    String
+  shippingZip      String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}

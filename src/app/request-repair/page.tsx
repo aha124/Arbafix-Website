@@ -64,18 +64,11 @@ const US_STATES = [
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
 ];
 
-function generateConfirmationNumber(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "ARB-";
-  for (let i = 0; i < 5; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
 export default function RequestRepairPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [confirmationNumber, setConfirmationNumber] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -183,19 +176,49 @@ export default function RequestRepairPage() {
     }
   };
 
-  const handleSubmit = () => {
-    if (validateStep3()) {
-      // Log the submission (for now, until database is added)
-      console.log("Repair Request Submitted:", formData);
+  const handleSubmit = async () => {
+    if (!validateStep3()) return;
 
-      // Generate confirmation number
-      const confNum = generateConfirmationNumber();
-      setConfirmationNumber(confNum);
+    setIsSubmitting(true);
+    setSubmitError("");
 
-      console.log("Confirmation Number:", confNum);
+    try {
+      const response = await fetch("/api/repair-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deviceType: formData.deviceType,
+          issueDescription: formData.issueDescription,
+          commonIssues: formData.commonIssues,
+          customerName: formData.fullName,
+          customerEmail: formData.email,
+          customerPhone: formData.phone || null,
+          shippingAddress: formData.street,
+          shippingCity: formData.city,
+          shippingState: formData.state,
+          shippingZip: formData.zip,
+        }),
+      });
 
-      // Show success state
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit repair request");
+      }
+
+      setConfirmationNumber(data.ticketNumber);
       setIsSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting repair request:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -671,6 +694,13 @@ export default function RequestRepairPage() {
                     <p className="mt-2 text-sm text-red-500">{errors.agreeToTerms}</p>
                   )}
                 </div>
+
+                {/* Submit Error Message */}
+                {submitError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">{submitError}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -702,10 +732,39 @@ export default function RequestRepairPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="inline-flex items-center gap-2 px-8 py-3 bg-success text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-success text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit Request
-                  <Check className="w-5 h-5" />
+                  {isSubmitting ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Request
+                      <Check className="w-5 h-5" />
+                    </>
+                  )}
                 </button>
               )}
             </div>

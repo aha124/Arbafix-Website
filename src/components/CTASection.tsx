@@ -13,7 +13,7 @@ export default function CTASection() {
         </p>
         <div className="mt-8">
           <a
-            href="mailto:repairs@arbafix.com"
+            href="/request-repair"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-lg hover:shadow-xl"
           >
             Start Your Repair

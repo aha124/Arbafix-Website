@@ -18,7 +18,7 @@ export default function Hero() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <a
-                href="#contact"
+                href="/request-repair"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors shadow-md hover:shadow-lg"
               >
                 Start Your Repair

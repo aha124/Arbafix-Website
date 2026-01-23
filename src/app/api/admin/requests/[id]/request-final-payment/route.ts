@@ -39,6 +39,13 @@ export async function POST(
     }
 
     // Validate the request is in the right state
+    if (repairRequest.status !== "REPAIR_COMPLETE") {
+      return NextResponse.json(
+        { error: "Repair must be marked as complete before requesting final payment" },
+        { status: 400 }
+      );
+    }
+
     if (repairRequest.paymentStatus === "PAID_IN_FULL") {
       return NextResponse.json(
         { error: "This request has already been paid in full" },

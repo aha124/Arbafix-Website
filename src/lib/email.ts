@@ -1,0 +1,395 @@
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Brand colors
+const BRAND_BLUE = "#2563eb";
+const TEXT_DARK = "#1e293b";
+const TEXT_BODY = "#64748b";
+const BG_LIGHT = "#f8fafc";
+
+// Base email template wrapper
+function emailWrapper(content: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arbafix</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: ${BG_LIGHT};">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: ${BG_LIGHT};">
+    <tr>
+      <td style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: ${BRAND_BLUE}; padding: 24px 32px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">Arbafix</h1>
+              <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Video Game Console Repair</p>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px;">
+              ${content}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: ${BG_LIGHT}; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px;">
+                Questions? Reply to this email or contact us anytime.
+              </p>
+              <p style="margin: 12px 0 0 0; color: ${TEXT_BODY}; font-size: 12px;">
+                &copy; ${new Date().getFullYear()} Arbafix. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+// Status display names and descriptions
+const STATUS_INFO: Record<string, { label: string; description: string; nextSteps: string }> = {
+  PENDING: {
+    label: "Pending",
+    description: "Your repair request has been received and is awaiting review.",
+    nextSteps: "We'll review your request and send you a quote within 24 hours.",
+  },
+  IN_PROGRESS: {
+    label: "In Progress",
+    description: "Great news! We've started working on your repair.",
+    nextSteps: "We'll keep you updated on the progress and notify you when it's complete.",
+  },
+  COMPLETED: {
+    label: "Completed",
+    description: "Your repair has been completed successfully!",
+    nextSteps: "Your device is ready for pickup or will be shipped back to you shortly.",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    description: "This repair request has been cancelled.",
+    nextSteps: "If you have questions or would like to submit a new request, please contact us.",
+  },
+};
+
+interface RepairRequestData {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  issueDescription: string;
+  commonIssues?: string[];
+}
+
+// Email 1: Customer confirmation when they submit a request
+export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
+  const { ticketNumber, customerName, customerEmail, deviceType, issueDescription } = data;
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Thank You for Your Repair Request!
+    </h2>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Hi ${customerName},
+    </p>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      We've received your repair request and our team is reviewing it now.
+    </p>
+
+    <!-- Ticket Number Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: ${BG_LIGHT}; border-radius: 8px; padding: 20px; text-align: center; border: 2px dashed ${BRAND_BLUE};">
+          <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Your Ticket Number</p>
+          <p style="margin: 0; color: ${BRAND_BLUE}; font-size: 32px; font-weight: 700; letter-spacing: 2px;">${ticketNumber}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Request Details -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 12px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Request Details</p>
+          <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px;">
+            <strong style="color: ${TEXT_DARK};">Device:</strong> ${deviceType}
+          </p>
+          <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px;">
+            <strong style="color: ${TEXT_DARK};">Issue:</strong> ${issueDescription}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Next Steps -->
+    <h3 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 18px; font-weight: 600;">What's Next?</h3>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="padding: 0 0 12px 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">1</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                We'll review your request and assess the repair needs
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0 0 12px 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">2</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                You'll receive a quote via email within 24 hours
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">3</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                Once approved, we'll begin your repair right away
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+      Save this email for your records. You can reference your ticket number <strong style="color: ${TEXT_DARK};">${ticketNumber}</strong> in any future communications.
+    </p>
+  `;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: "Arbafix <onboarding@resend.dev>",
+      to: customerEmail,
+      subject: `Repair Request Received - ${ticketNumber}`,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("Failed to send customer confirmation email:", error);
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send customer confirmation email:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 2: Admin notification when new request comes in
+export async function sendAdminNotificationEmail(data: RepairRequestData & { requestId: string }) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error("ADMIN_EMAIL not configured");
+    return { success: false, error: "ADMIN_EMAIL not configured" };
+  }
+
+  const { ticketNumber, customerName, customerEmail, deviceType, issueDescription, commonIssues, requestId } = data;
+  const adminDashboardUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/requests/${requestId}`
+    : `/admin/requests/${requestId}`;
+
+  const issuesList = commonIssues && commonIssues.length > 0
+    ? commonIssues.map(issue => `<li style="color: ${TEXT_BODY}; font-size: 14px; margin-bottom: 4px;">${issue}</li>`).join("")
+    : "";
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      New Repair Request Received
+    </h2>
+
+    <!-- Ticket Number Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #fef3c7; border-radius: 8px; padding: 16px; border-left: 4px solid #f59e0b;">
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 16px;">
+            <strong>Ticket:</strong> ${ticketNumber}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Customer Info -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Customer Information</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px; width: 100px;">Name:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 500;">${customerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Email:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px;">
+                <a href="mailto:${customerEmail}" style="color: ${BRAND_BLUE}; text-decoration: none;">${customerEmail}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Device Info -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Device Details</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px; width: 100px;">Device:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 500;">${deviceType}</td>
+            </tr>
+          </table>
+          ${issuesList ? `
+          <p style="margin: 12px 0 8px 0; color: ${TEXT_BODY}; font-size: 14px;">Reported Issues:</p>
+          <ul style="margin: 0; padding-left: 20px;">${issuesList}</ul>
+          ` : ""}
+          <p style="margin: 12px 0 8px 0; color: ${TEXT_BODY}; font-size: 14px;">Description:</p>
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 14px; background-color: #ffffff; padding: 12px; border-radius: 4px; border: 1px solid #e2e8f0;">${issueDescription}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="text-align: center;">
+          <a href="${adminDashboardUrl}" style="display: inline-block; background-color: ${BRAND_BLUE}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+            View in Dashboard
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: "Arbafix <onboarding@resend.dev>",
+      to: adminEmail,
+      subject: `New Repair Request - ${ticketNumber}`,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("Failed to send admin notification email:", error);
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send admin notification email:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 3: Customer notification when status changes
+export async function sendStatusUpdateEmail(data: {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  oldStatus: string;
+  newStatus: string;
+}) {
+  const { ticketNumber, customerName, customerEmail, deviceType, newStatus } = data;
+  const statusInfo = STATUS_INFO[newStatus] || STATUS_INFO.PENDING;
+
+  // Set status badge color
+  let statusColor = BRAND_BLUE;
+  if (newStatus === "COMPLETED") statusColor = "#16a34a";
+  if (newStatus === "CANCELLED") statusColor = "#dc2626";
+  if (newStatus === "IN_PROGRESS") statusColor = "#f59e0b";
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Repair Status Update
+    </h2>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Hi ${customerName},
+    </p>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      There's an update on your repair request for your <strong style="color: ${TEXT_DARK};">${deviceType}</strong>.
+    </p>
+
+    <!-- Status Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: ${BG_LIGHT}; border-radius: 8px; padding: 24px; text-align: center;">
+          <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px;">Ticket: <strong style="color: ${TEXT_DARK};">${ticketNumber}</strong></p>
+          <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 16px auto;">
+            <tr>
+              <td style="background-color: ${statusColor}; color: #ffffff; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                ${statusInfo.label}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Status Description -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 12px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">What This Means</p>
+          <p style="margin: 0 0 16px 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+            ${statusInfo.description}
+          </p>
+          <p style="margin: 0 0 8px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 600;">Next Steps:</p>
+          <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+            ${statusInfo.nextSteps}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+      If you have any questions about your repair, feel free to reply to this email and we'll get back to you as soon as possible.
+    </p>
+  `;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: "Arbafix <onboarding@resend.dev>",
+      to: customerEmail,
+      subject: `Repair Update - ${ticketNumber}`,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("Failed to send status update email:", error);
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send status update email:", error);
+    return { success: false, error };
+  }
+}

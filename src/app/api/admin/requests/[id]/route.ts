@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { sendStatusUpdateEmail } from "@/lib/email";
 
 export async function GET(
   request: NextRequest,
@@ -60,12 +61,41 @@ export async function PATCH(
       );
     }
 
+    // Get current request to check for status change
+    const currentRequest = await prisma.repairRequest.findUnique({
+      where: { id },
+    });
+
+    if (!currentRequest) {
+      return NextResponse.json(
+        { error: "Request not found" },
+        { status: 404 }
+      );
+    }
+
+    const oldStatus = currentRequest.status;
+    const newStatus = body.status;
+
     const updatedRequest = await prisma.repairRequest.update({
       where: { id },
       data: {
         status: body.status,
       },
     });
+
+    // Send status update email if status changed
+    if (oldStatus !== newStatus) {
+      sendStatusUpdateEmail({
+        ticketNumber: updatedRequest.ticketNumber,
+        customerName: updatedRequest.customerName,
+        customerEmail: updatedRequest.customerEmail,
+        deviceType: updatedRequest.deviceType,
+        oldStatus,
+        newStatus,
+      }).catch((error) => {
+        console.error("Error sending status update email:", error);
+      });
+    }
 
     return NextResponse.json({ request: updatedRequest });
   } catch (error) {

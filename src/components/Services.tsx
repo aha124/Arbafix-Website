@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Gamepad2, ChevronRight } from "lucide-react";
 
 export default function Services() {
@@ -5,6 +6,7 @@ export default function Services() {
     {
       title: "Nintendo",
       subtitle: "Switch, 3DS, Wii & Retro",
+      href: "/services/nintendo",
       items: [
         "Joy-Con drift repair",
         "Screen replacement",
@@ -12,10 +14,12 @@ export default function Services() {
         "Charging port repair",
       ],
       color: "bg-red-500",
+      hoverBorder: "hover:border-red-200",
     },
     {
       title: "PlayStation",
       subtitle: "PS5, PS4, PS3 & Vita",
+      href: "/services/playstation",
       items: [
         "HDMI port repair",
         "Disc drive issues",
@@ -23,10 +27,12 @@ export default function Services() {
         "Controller repair",
       ],
       color: "bg-blue-600",
+      hoverBorder: "hover:border-blue-200",
     },
     {
       title: "Xbox",
       subtitle: "Series X/S, One & 360",
+      href: "/services/xbox",
       items: [
         "Power supply issues",
         "Red ring of death",
@@ -34,6 +40,7 @@ export default function Services() {
         "Controller stick drift",
       ],
       color: "bg-green-600",
+      hoverBorder: "hover:border-green-200",
     },
   ];
 
@@ -54,13 +61,14 @@ export default function Services() {
         {/* Service Cards */}
         <div className="grid md:grid-cols-3 gap-8">
           {services.map((service, index) => (
-            <div
+            <Link
               key={index}
-              className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow group"
+              href={service.href}
+              className={`bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all group ${service.hoverBorder}`}
             >
               {/* Icon */}
               <div
-                className={`w-14 h-14 ${service.color} rounded-xl flex items-center justify-center mb-5`}
+                className={`w-14 h-14 ${service.color} rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}
               >
                 <Gamepad2 className="w-7 h-7 text-white" />
               </div>
@@ -83,15 +91,23 @@ export default function Services() {
               </ul>
 
               {/* Link */}
-              <a
-                href="#contact"
-                className="inline-flex items-center gap-1 mt-6 text-primary font-semibold group-hover:gap-2 transition-all"
-              >
-                Learn more
+              <span className="inline-flex items-center gap-1 mt-6 text-primary font-semibold group-hover:gap-2 transition-all">
+                View all repairs
                 <ChevronRight className="w-4 h-4" />
-              </a>
-            </div>
+              </span>
+            </Link>
           ))}
+        </div>
+
+        {/* View All Services Link */}
+        <div className="text-center mt-12">
+          <Link
+            href="/services"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-bg-light text-text-dark font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            View All Services
+            <ChevronRight className="w-5 h-5" />
+          </Link>
         </div>
       </div>
     </section>

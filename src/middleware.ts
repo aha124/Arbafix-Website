@@ -13,6 +13,10 @@ export default withAuth(
         if (req.nextUrl.pathname === "/admin/login") {
           return true;
         }
+        // Allow Stripe webhook to bypass auth (Stripe needs to POST to this endpoint)
+        if (req.nextUrl.pathname === "/api/stripe/webhook") {
+          return true;
+        }
         // Require authentication for all other admin routes
         return !!token;
       },

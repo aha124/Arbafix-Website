@@ -98,16 +98,20 @@ export async function PATCH(
         newStatus,
       });
 
-      sendStatusUpdateEmail({
-        ticketNumber: updatedRequest.ticketNumber,
-        customerName: updatedRequest.customerName,
-        customerEmail: updatedRequest.customerEmail,
-        deviceType: updatedRequest.deviceType,
-        oldStatus,
-        newStatus,
-      }).catch((error) => {
-        console.error("[PATCH /api/admin/requests] Error sending status update email:", error);
-      });
+      try {
+        console.log('[PATCH] Awaiting email send...');
+        await sendStatusUpdateEmail({
+          ticketNumber: updatedRequest.ticketNumber,
+          customerName: updatedRequest.customerName,
+          customerEmail: updatedRequest.customerEmail,
+          deviceType: updatedRequest.deviceType,
+          oldStatus,
+          newStatus,
+        });
+        console.log('[PATCH] Email send completed');
+      } catch (emailError) {
+        console.error('[PATCH] Email failed:', emailError);
+      }
     }
 
     return NextResponse.json({ request: updatedRequest });

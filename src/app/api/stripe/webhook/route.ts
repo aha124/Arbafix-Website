@@ -65,17 +65,29 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Repair request not found" }, { status: 404 });
       }
 
-      // Determine payment status
+      // Determine payment status and new repair status
       const amountPaid = session.amount_total || 0;
       const quoteAmount = repairRequest.quoteAmount || 0;
       const previouslyPaid = repairRequest.amountPaid || 0;
       const totalPaid = previouslyPaid + amountPaid;
 
       let newPaymentStatus: string;
-      if (totalPaid >= quoteAmount) {
+      let newRepairStatus: string;
+
+      // Determine status based on payment type and amount
+      if (paymentType === "final" || totalPaid >= quoteAmount) {
         newPaymentStatus = "PAID_IN_FULL";
-      } else {
+        // If this is the final payment after repair complete, keep current status or set to REPAIR_COMPLETE
+        // The admin will manually mark as SHIPPED after adding tracking
+        newRepairStatus = repairRequest.status === "REPAIR_COMPLETE" ? "REPAIR_COMPLETE" : repairRequest.status;
+      } else if (paymentType === "deposit") {
         newPaymentStatus = "DEPOSIT_PAID";
+        // After deposit paid, status moves to DEPOSIT_PAID (customer should ship device)
+        newRepairStatus = "DEPOSIT_PAID";
+      } else {
+        // Full payment upfront
+        newPaymentStatus = totalPaid >= quoteAmount ? "PAID_IN_FULL" : "DEPOSIT_PAID";
+        newRepairStatus = totalPaid >= quoteAmount ? "DEPOSIT_PAID" : "DEPOSIT_PAID";
       }
 
       // Update the repair request
@@ -85,7 +97,7 @@ export async function POST(request: NextRequest) {
           amountPaid: totalPaid,
           paymentStatus: newPaymentStatus,
           stripePaymentId: session.payment_intent as string,
-          status: "APPROVED",
+          status: newRepairStatus,
         },
       });
 
@@ -93,7 +105,7 @@ export async function POST(request: NextRequest) {
         ticketNumber,
         amountPaid: totalPaid,
         paymentStatus: newPaymentStatus,
-        status: "APPROVED",
+        status: newRepairStatus,
       });
 
       // Send confirmation emails (non-blocking)
@@ -105,6 +117,8 @@ export async function POST(request: NextRequest) {
           deviceType: repairRequest.deviceType,
           amountPaid,
           paymentType: paymentType || "payment",
+          totalQuote: quoteAmount,
+          totalPaid,
         }),
         sendAdminPaymentNotificationEmail({
           ticketNumber,

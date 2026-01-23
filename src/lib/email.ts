@@ -69,15 +69,41 @@ const STATUS_INFO: Record<string, { label: string; description: string; nextStep
     description: "Your repair request has been received and is awaiting review.",
     nextSteps: "We'll review your request and send you a quote within 24 hours.",
   },
-  APPROVED: {
-    label: "Approved",
-    description: "Your repair request has been approved and payment has been received.",
+  QUOTED: {
+    label: "Quote Sent",
+    description: "We've sent you a quote for your repair.",
+    nextSteps: "Please review and pay the deposit to proceed with your repair.",
+  },
+  DEPOSIT_PAID: {
+    label: "Deposit Paid",
+    description: "Thank you for your deposit! Your repair has been confirmed.",
     nextSteps: "Please ship your device to us. We'll begin repairs as soon as it arrives.",
+  },
+  RECEIVED: {
+    label: "Device Received",
+    description: "We've received your device at our repair center.",
+    nextSteps: "Our technicians will begin working on your repair shortly.",
   },
   IN_PROGRESS: {
     label: "In Progress",
     description: "Great news! We've started working on your repair.",
     nextSteps: "We'll keep you updated on the progress and notify you when it's complete.",
+  },
+  REPAIR_COMPLETE: {
+    label: "Repair Complete",
+    description: "Your repair has been completed successfully!",
+    nextSteps: "Please pay the remaining balance to have your device shipped back to you.",
+  },
+  SHIPPED: {
+    label: "Shipped",
+    description: "Your repaired device is on its way!",
+    nextSteps: "You'll receive tracking information shortly. Thank you for choosing Arbafix!",
+  },
+  // Legacy statuses for backward compatibility
+  APPROVED: {
+    label: "Approved",
+    description: "Your repair request has been approved and payment has been received.",
+    nextSteps: "Please ship your device to us. We'll begin repairs as soon as it arrives.",
   },
   COMPLETED: {
     label: "Completed",
@@ -471,7 +497,8 @@ export async function sendQuoteEmail(data: {
   deviceType: string;
   issueDescription: string;
   quoteAmount: number; // in cents
-  depositAmount: number | null; // in cents
+  depositPercent: number; // percentage (25, 50, 75, 100)
+  depositAmount: number; // in cents
   paymentUrl: string;
 }) {
   console.log("[sendQuoteEmail] Called with data:", {
@@ -479,6 +506,7 @@ export async function sendQuoteEmail(data: {
     customerName: data.customerName,
     customerEmail: data.customerEmail,
     quoteAmount: data.quoteAmount,
+    depositPercent: data.depositPercent,
     depositAmount: data.depositAmount,
   });
 
@@ -489,14 +517,14 @@ export async function sendQuoteEmail(data: {
     deviceType,
     issueDescription,
     quoteAmount,
+    depositPercent,
     depositAmount,
     paymentUrl,
   } = data;
 
   const formattedQuote = (quoteAmount / 100).toFixed(2);
-  const formattedDeposit = depositAmount ? (depositAmount / 100).toFixed(2) : null;
-  const paymentAmount = depositAmount || quoteAmount;
-  const formattedPaymentAmount = (paymentAmount / 100).toFixed(2);
+  const formattedDeposit = (depositAmount / 100).toFixed(2);
+  const isFullPayment = depositPercent === 100;
 
   const content = `
     <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
@@ -528,16 +556,18 @@ export async function sendQuoteEmail(data: {
       <tr>
         <td style="background-color: #ecfdf5; border-radius: 8px; padding: 24px; text-align: center; border: 2px solid #10b981;">
           <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
-            ${depositAmount ? "Total Quote" : "Repair Quote"}
+            Total Repair Cost
           </p>
           <p style="margin: 0; color: #059669; font-size: 36px; font-weight: 700;">$${formattedQuote}</p>
-          ${depositAmount ? `
-          <p style="margin: 16px 0 0 0; color: ${TEXT_BODY}; font-size: 14px;">
-            <strong>Deposit Required:</strong> $${formattedDeposit}
-          </p>
-          <p style="margin: 4px 0 0 0; color: ${TEXT_BODY}; font-size: 12px;">
-            (Remaining balance due upon completion)
-          </p>
+          ${!isFullPayment ? `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #d1fae5;">
+            <p style="margin: 0 0 4px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">
+              Deposit Required (${depositPercent}%): $${formattedDeposit}
+            </p>
+            <p style="margin: 0; color: ${TEXT_BODY}; font-size: 12px;">
+              Remaining $${((quoteAmount - depositAmount) / 100).toFixed(2)} due after repair is complete
+            </p>
+          </div>
           ` : ""}
         </td>
       </tr>
@@ -560,14 +590,17 @@ export async function sendQuoteEmail(data: {
       <tr>
         <td style="text-align: center;">
           <a href="${paymentUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 18px; font-weight: 600;">
-            Pay Now - $${formattedPaymentAmount}
+            ${isFullPayment ? `Pay Now - $${formattedQuote}` : `Pay Deposit - $${formattedDeposit}`}
           </a>
         </td>
       </tr>
     </table>
 
     <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6; text-align: center;">
-      Once payment is received, we'll begin your repair right away.
+      ${isFullPayment
+        ? "Once payment is received, please ship your device to us and we'll begin your repair right away."
+        : "Once your deposit is received, please ship your device to us. We'll begin repairs when it arrives."
+      }
     </p>
   `;
 
@@ -606,18 +639,36 @@ export async function sendPaymentConfirmationEmail(data: {
   customerEmail: string;
   deviceType: string;
   amountPaid: number; // in cents
-  paymentType: string; // "deposit" or "full"
+  paymentType: string; // "deposit" or "final"
+  totalQuote?: number; // in cents (optional, for showing balance info)
+  totalPaid?: number; // in cents (optional, running total)
 }) {
   console.log("[sendPaymentConfirmationEmail] Called with data:", {
     ticketNumber: data.ticketNumber,
     customerName: data.customerName,
     customerEmail: data.customerEmail,
     amountPaid: data.amountPaid,
+    paymentType: data.paymentType,
   });
 
-  const { ticketNumber, customerName, customerEmail, deviceType, amountPaid, paymentType } = data;
+  const { ticketNumber, customerName, customerEmail, deviceType, amountPaid, paymentType, totalQuote, totalPaid } = data;
   const formattedAmount = (amountPaid / 100).toFixed(2);
   const isDeposit = paymentType === "deposit";
+  const isFinalPayment = paymentType === "final";
+
+  // Determine status and messaging based on payment type
+  let statusLabel = "CONFIRMED";
+  let statusColor = BRAND_BLUE;
+  let mainMessage = "Thank you for your payment!";
+
+  if (isDeposit) {
+    statusLabel = "DEPOSIT PAID";
+    mainMessage = "Thank you for your deposit! Your repair has been confirmed.";
+  } else if (isFinalPayment) {
+    statusLabel = "PAID IN FULL";
+    statusColor = "#10b981";
+    mainMessage = "Thank you for completing your payment! Your device will be shipped shortly.";
+  }
 
   const content = `
     <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
@@ -627,7 +678,7 @@ export async function sendPaymentConfirmationEmail(data: {
       Hi ${customerName},
     </p>
     <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
-      Thank you for your payment! Your repair request has been approved and we'll begin working on it shortly.
+      ${mainMessage}
     </p>
 
     <!-- Payment Success Box -->
@@ -638,9 +689,16 @@ export async function sendPaymentConfirmationEmail(data: {
             <span style="color: white; font-size: 24px;">✓</span>
           </div>
           <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
-            ${isDeposit ? "Deposit Paid" : "Payment Received"}
+            ${isDeposit ? "Deposit Paid" : isFinalPayment ? "Final Payment Received" : "Payment Received"}
           </p>
           <p style="margin: 0; color: #059669; font-size: 36px; font-weight: 700;">$${formattedAmount}</p>
+          ${totalQuote && totalPaid ? `
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #d1fae5;">
+            <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px;">
+              Total Paid: $${(totalPaid / 100).toFixed(2)} of $${(totalQuote / 100).toFixed(2)}
+            </p>
+          </div>
+          ` : ""}
         </td>
       </tr>
     </table>
@@ -662,7 +720,7 @@ export async function sendPaymentConfirmationEmail(data: {
             <tr>
               <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Status:</td>
               <td style="padding: 4px 0;">
-                <span style="background-color: ${BRAND_BLUE}; color: #ffffff; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">APPROVED</span>
+                <span style="background-color: ${statusColor}; color: #ffffff; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">${statusLabel}</span>
               </td>
             </tr>
           </table>
@@ -672,6 +730,56 @@ export async function sendPaymentConfirmationEmail(data: {
 
     <!-- Next Steps -->
     <h3 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 18px; font-weight: 600;">What's Next?</h3>
+    ${isDeposit ? `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="padding: 0 0 12px 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">1</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                Ship your device to our repair center
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0 0 12px 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">2</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                We'll begin repairs once we receive your device
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">3</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                Pay the remaining balance when repair is complete, then we'll ship it back
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    ` : isFinalPayment ? `
+    <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+      Your device has been repaired and your payment is complete. We'll ship your device back to you shortly and send you tracking information once it's on its way.
+    </p>
+    ` : `
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
       <tr>
         <td style="padding: 0 0 12px 0;">
@@ -716,6 +824,7 @@ export async function sendPaymentConfirmationEmail(data: {
         </td>
       </tr>
     </table>
+    `}
   `;
 
   const emailPayload = {
@@ -839,6 +948,141 @@ export async function sendAdminPaymentNotificationEmail(data: {
     return { success: true };
   } catch (error) {
     console.error("Failed to send admin payment notification email:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 7: Final payment request email
+export async function sendFinalPaymentEmail(data: {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  quoteAmount: number; // in cents
+  depositPaid: number; // in cents
+  remainingBalance: number; // in cents
+  paymentUrl: string;
+}) {
+  console.log("[sendFinalPaymentEmail] Called with data:", {
+    ticketNumber: data.ticketNumber,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    quoteAmount: data.quoteAmount,
+    depositPaid: data.depositPaid,
+    remainingBalance: data.remainingBalance,
+  });
+
+  const {
+    ticketNumber,
+    customerName,
+    customerEmail,
+    deviceType,
+    quoteAmount,
+    depositPaid,
+    remainingBalance,
+    paymentUrl,
+  } = data;
+
+  const formattedQuote = (quoteAmount / 100).toFixed(2);
+  const formattedDeposit = (depositPaid / 100).toFixed(2);
+  const formattedBalance = (remainingBalance / 100).toFixed(2);
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Your Repair is Complete!
+    </h2>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Hi ${customerName},
+    </p>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Great news! We've completed the repair on your ${deviceType}. Please pay the remaining balance to have your device shipped back to you.
+    </p>
+
+    <!-- Ticket Number Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: ${BG_LIGHT}; border-radius: 8px; padding: 16px; border-left: 4px solid #10b981;">
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 14px;">
+            <strong>Ticket:</strong> ${ticketNumber}
+          </p>
+          <p style="margin: 8px 0 0 0; color: ${TEXT_DARK}; font-size: 14px;">
+            <strong>Device:</strong> ${deviceType}
+          </p>
+          <p style="margin: 8px 0 0 0; color: #10b981; font-size: 14px; font-weight: 600;">
+            Status: Repair Complete
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Payment Summary -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #f0fdf4; border-radius: 8px; padding: 24px; border: 2px solid #10b981;">
+          <p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600; text-align: center;">
+            Payment Summary
+          </p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 8px 0; color: ${TEXT_BODY}; font-size: 14px;">Total Repair Cost:</td>
+              <td style="padding: 8px 0; color: ${TEXT_DARK}; font-size: 14px; text-align: right;">$${formattedQuote}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: ${TEXT_BODY}; font-size: 14px;">Deposit Paid:</td>
+              <td style="padding: 8px 0; color: #10b981; font-size: 14px; text-align: right;">- $${formattedDeposit}</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="border-top: 1px solid #d1fae5; padding-top: 12px;"></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: ${TEXT_DARK}; font-size: 18px; font-weight: 700;">Remaining Balance:</td>
+              <td style="padding: 8px 0; color: #059669; font-size: 24px; font-weight: 700; text-align: right;">$${formattedBalance}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="text-align: center;">
+          <a href="${paymentUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 18px; font-weight: 600;">
+            Pay Remaining Balance - $${formattedBalance}
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6; text-align: center;">
+      Once payment is received, we'll ship your device back to you and send tracking information.
+    </p>
+  `;
+
+  const emailPayload = {
+    from: "Arbafix <onboarding@resend.dev>",
+    to: customerEmail,
+    subject: `Final Payment Required - ${ticketNumber}`,
+  };
+  console.log("[sendFinalPaymentEmail] Email payload:", emailPayload);
+
+  try {
+    const { data: responseData, error } = await getResendClient().emails.send({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("[sendFinalPaymentEmail] Resend API error:", JSON.stringify(error, null, 2));
+      return { success: false, error };
+    }
+
+    console.log("[sendFinalPaymentEmail] Email sent successfully:", responseData);
+    return { success: true };
+  } catch (error) {
+    console.error("[sendFinalPaymentEmail] Exception caught:", error);
     return { success: false, error };
   }
 }

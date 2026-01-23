@@ -10,6 +10,7 @@ generator client {
 model RepairRequest {
   id               String   @id @default(cuid())
   ticketNumber     String   @unique
+  // Status values: PENDING, QUOTED, DEPOSIT_PAID, RECEIVED, IN_PROGRESS, REPAIR_COMPLETE, SHIPPED, CANCELLED
   status           String   @default("PENDING")
   deviceType       String
   issueDescription String
@@ -25,10 +26,16 @@ model RepairRequest {
   updatedAt        DateTime @updatedAt
 
   // Payment fields
-  quoteAmount      Int?
-  depositAmount    Int?
-  amountPaid       Int?
+  quoteAmount      Int?                    // Total repair cost in cents
+  depositPercent   Int?     @default(50)   // Percentage required as deposit (25, 50, 75, 100)
+  depositAmount    Int?                    // Calculated: quoteAmount * depositPercent / 100
+  amountPaid       Int?                    // Running total of payments received
+  // Payment status values: NONE, QUOTE_SENT, DEPOSIT_PAID, PAYMENT_REQUESTED, PAID_IN_FULL
   paymentStatus    String?  @default("NONE")
   stripePaymentId  String?
   stripeSessionId  String?
+
+  // Shipping tracking
+  trackingNumber   String?
+  trackingCarrier  String?
 }

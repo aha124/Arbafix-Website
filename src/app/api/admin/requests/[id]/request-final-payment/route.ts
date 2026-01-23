@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { sendQuoteEmail } from "@/lib/email";
+import { sendFinalPaymentEmail } from "@/lib/email";
 import Stripe from "stripe";
 
 // Lazy initialization to avoid build-time errors when env vars aren't available
@@ -25,26 +25,6 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const { quoteAmount, depositPercent = 50 } = body;
-
-    if (!quoteAmount || quoteAmount <= 0) {
-      return NextResponse.json(
-        { error: "Quote amount is required and must be greater than 0" },
-        { status: 400 }
-      );
-    }
-
-    // Validate deposit percent
-    if (![25, 50, 75, 100].includes(depositPercent)) {
-      return NextResponse.json(
-        { error: "Deposit percent must be 25, 50, 75, or 100" },
-        { status: 400 }
-      );
-    }
-
-    // Calculate deposit amount
-    const depositAmount = Math.round(quoteAmount * depositPercent / 100);
 
     // Get the repair request
     const repairRequest = await prisma.repairRequest.findUnique({
@@ -58,7 +38,7 @@ export async function POST(
       );
     }
 
-    // Check if already paid
+    // Validate the request is in the right state
     if (repairRequest.paymentStatus === "PAID_IN_FULL") {
       return NextResponse.json(
         { error: "This request has already been paid in full" },
@@ -66,11 +46,41 @@ export async function POST(
       );
     }
 
+    if (repairRequest.paymentStatus !== "DEPOSIT_PAID") {
+      return NextResponse.json(
+        { error: "Deposit must be paid before requesting final payment" },
+        { status: 400 }
+      );
+    }
+
+    if (!repairRequest.quoteAmount) {
+      return NextResponse.json(
+        { error: "No quote amount set for this request" },
+        { status: 400 }
+      );
+    }
+
+    // Calculate remaining balance
+    const amountPaid = repairRequest.amountPaid || 0;
+    const remainingBalance = repairRequest.quoteAmount - amountPaid;
+
+    if (remainingBalance <= 0) {
+      // Already paid in full, update status
+      await prisma.repairRequest.update({
+        where: { id },
+        data: {
+          paymentStatus: "PAID_IN_FULL",
+        },
+      });
+      return NextResponse.json(
+        { error: "No remaining balance - already paid in full" },
+        { status: 400 }
+      );
+    }
+
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://arbafix.com';
 
-    // Determine payment type based on deposit percent
-    const paymentType = depositPercent === 100 ? "full" : "deposit";
-
+    // Create Stripe Checkout Session for the remaining balance
     const stripeSession = await getStripeClient().checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -78,10 +88,10 @@ export async function POST(
           price_data: {
             currency: "usd",
             product_data: {
-              name: `Repair ${paymentType === "deposit" ? "Deposit" : "Payment"} - ${repairRequest.ticketNumber}`,
-              description: `${repairRequest.deviceType} repair - ${paymentType === "deposit" ? `${depositPercent}% Deposit` : "Full payment"}`,
+              name: `Final Payment - ${repairRequest.ticketNumber}`,
+              description: `${repairRequest.deviceType} repair - Remaining balance`,
             },
-            unit_amount: depositAmount,
+            unit_amount: remainingBalance,
           },
           quantity: 1,
         },
@@ -92,51 +102,47 @@ export async function POST(
       customer_email: repairRequest.customerEmail,
       metadata: {
         ticketNumber: repairRequest.ticketNumber,
-        type: paymentType,
+        type: "final",
         repairRequestId: repairRequest.id,
       },
     });
 
-    // Update the repair request with quote info and set status to QUOTED
+    // Update the repair request to indicate payment has been requested
     await prisma.repairRequest.update({
       where: { id },
       data: {
-        quoteAmount,
-        depositPercent,
-        depositAmount,
-        paymentStatus: "QUOTE_SENT",
-        status: "QUOTED",
+        paymentStatus: "PAYMENT_REQUESTED",
         stripeSessionId: stripeSession.id,
       },
     });
 
-    // Send quote email to customer
-    const emailResult = await sendQuoteEmail({
+    // Send final payment email to customer
+    const emailResult = await sendFinalPaymentEmail({
       ticketNumber: repairRequest.ticketNumber,
       customerName: repairRequest.customerName,
       customerEmail: repairRequest.customerEmail,
       deviceType: repairRequest.deviceType,
-      issueDescription: repairRequest.issueDescription,
-      quoteAmount,
-      depositPercent,
-      depositAmount,
+      quoteAmount: repairRequest.quoteAmount,
+      depositPaid: amountPaid,
+      remainingBalance,
       paymentUrl: stripeSession.url!,
     });
 
     if (!emailResult.success) {
-      console.error("[send-quote] Failed to send quote email:", emailResult.error);
-      // Don't fail the request, the quote was saved
+      console.error("[request-final-payment] Failed to send email:", emailResult.error);
+      // Don't fail the request, the payment link was created
     }
 
     return NextResponse.json({
       success: true,
       paymentUrl: stripeSession.url,
-      message: "Quote sent successfully",
+      remainingBalance,
+      message: "Final payment request sent successfully",
     });
   } catch (error) {
-    console.error("[send-quote] Error:", error);
+    console.error("[request-final-payment] Error:", error);
     return NextResponse.json(
-      { error: "Failed to send quote" },
+      { error: "Failed to request final payment" },
       { status: 500 }
     );
   }

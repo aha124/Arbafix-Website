@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["deposit", "full"].includes(type)) {
+    if (!["deposit", "full", "final"].includes(type)) {
       return NextResponse.json(
-        { error: "Type must be 'deposit' or 'full'" },
+        { error: "Type must be 'deposit', 'full', or 'final'" },
         { status: 400 }
       );
     }

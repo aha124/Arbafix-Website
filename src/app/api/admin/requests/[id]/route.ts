@@ -53,8 +53,13 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // Validate status
-    const validStatuses = ["PENDING", "APPROVED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+    // Validate status - support both new and legacy status values
+    const validStatuses = [
+      // New workflow statuses
+      "PENDING", "QUOTED", "DEPOSIT_PAID", "RECEIVED", "IN_PROGRESS", "REPAIR_COMPLETE", "SHIPPED", "CANCELLED",
+      // Legacy statuses for backward compatibility
+      "APPROVED", "COMPLETED"
+    ];
     if (body.status && !validStatuses.includes(body.status)) {
       return NextResponse.json(
         { error: "Invalid status" },
@@ -78,11 +83,24 @@ export async function PATCH(
     const newStatus = body.status;
     console.log('[PATCH] Comparing status:', { oldStatus, newStatus, willSendEmail: oldStatus !== newStatus });
 
+    // Build update data
+    const updateData: Record<string, unknown> = {};
+
+    if (body.status) {
+      updateData.status = body.status;
+    }
+
+    // Handle tracking info for SHIPPED status
+    if (body.trackingNumber !== undefined) {
+      updateData.trackingNumber = body.trackingNumber;
+    }
+    if (body.trackingCarrier !== undefined) {
+      updateData.trackingCarrier = body.trackingCarrier;
+    }
+
     const updatedRequest = await prisma.repairRequest.update({
       where: { id },
-      data: {
-        status: body.status,
-      },
+      data: updateData,
     });
 
     // Send status update email if status changed

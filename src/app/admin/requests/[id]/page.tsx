@@ -21,12 +21,19 @@ interface RepairRequest {
   shippingZip: string;
   createdAt: string;
   updatedAt: string;
+  // Payment fields
+  quoteAmount: number | null;
+  depositAmount: number | null;
+  amountPaid: number | null;
+  paymentStatus: string | null;
+  stripePaymentId: string | null;
 }
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     PENDING: "bg-yellow-100 text-yellow-800",
     IN_PROGRESS: "bg-blue-100 text-blue-800",
+    APPROVED: "bg-green-100 text-green-800",
     COMPLETED: "bg-green-100 text-green-800",
     CANCELLED: "bg-gray-100 text-gray-800",
   };
@@ -34,6 +41,7 @@ function StatusBadge({ status }: { status: string }) {
   const labels: Record<string, string> = {
     PENDING: "Pending",
     IN_PROGRESS: "In Progress",
+    APPROVED: "Approved",
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
   };
@@ -49,6 +57,34 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function PaymentStatusBadge({ status }: { status: string | null }) {
+  const styles: Record<string, string> = {
+    NONE: "bg-gray-100 text-gray-600",
+    QUOTE_SENT: "bg-yellow-100 text-yellow-800",
+    DEPOSIT_PAID: "bg-blue-100 text-blue-800",
+    PAID_IN_FULL: "bg-green-100 text-green-800",
+  };
+
+  const labels: Record<string, string> = {
+    NONE: "No Quote",
+    QUOTE_SENT: "Quote Sent",
+    DEPOSIT_PAID: "Deposit Paid",
+    PAID_IN_FULL: "Paid in Full",
+  };
+
+  const actualStatus = status || "NONE";
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+        styles[actualStatus] || "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {labels[actualStatus] || actualStatus}
+    </span>
+  );
+}
+
 export default function RequestDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -58,6 +94,14 @@ export default function RequestDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("");
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    null
+  );
+
+  // Quote state
+  const [quoteAmountDollars, setQuoteAmountDollars] = useState("");
+  const [depositAmountDollars, setDepositAmountDollars] = useState("");
+  const [sendingQuote, setSendingQuote] = useState(false);
+  const [quoteMessage, setQuoteMessage] = useState<{ type: "success" | "error"; text: string } | null>(
     null
   );
 
@@ -80,6 +124,13 @@ export default function RequestDetailPage() {
         const data = await res.json();
         setRequest(data.request);
         setSelectedStatus(data.request.status);
+        // Initialize quote fields if they exist
+        if (data.request.quoteAmount) {
+          setQuoteAmountDollars((data.request.quoteAmount / 100).toFixed(2));
+        }
+        if (data.request.depositAmount) {
+          setDepositAmountDollars((data.request.depositAmount / 100).toFixed(2));
+        }
       } else if (res.status === 404) {
         router.push("/admin/requests");
       }
@@ -119,6 +170,55 @@ export default function RequestDetailPage() {
     }
   };
 
+  const handleSendQuote = async () => {
+    if (!request) return;
+
+    const quoteAmountCents = Math.round(parseFloat(quoteAmountDollars) * 100);
+    const depositAmountCents = depositAmountDollars
+      ? Math.round(parseFloat(depositAmountDollars) * 100)
+      : null;
+
+    if (isNaN(quoteAmountCents) || quoteAmountCents <= 0) {
+      setQuoteMessage({ type: "error", text: "Please enter a valid quote amount" });
+      return;
+    }
+
+    if (depositAmountCents && depositAmountCents >= quoteAmountCents) {
+      setQuoteMessage({ type: "error", text: "Deposit must be less than the total quote" });
+      return;
+    }
+
+    setSendingQuote(true);
+    setQuoteMessage(null);
+
+    try {
+      const res = await fetch(`/api/admin/requests/${request.id}/send-quote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quoteAmount: quoteAmountCents,
+          depositAmount: depositAmountCents,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setQuoteMessage({ type: "success", text: "Quote sent successfully!" });
+        // Refresh request data
+        fetchRequest();
+        setTimeout(() => setQuoteMessage(null), 5000);
+      } else {
+        setQuoteMessage({ type: "error", text: data.error || "Failed to send quote" });
+      }
+    } catch (error) {
+      console.error("Error sending quote:", error);
+      setQuoteMessage({ type: "error", text: "Failed to send quote" });
+    } finally {
+      setSendingQuote(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "long",
@@ -127,6 +227,13 @@ export default function RequestDetailPage() {
       hour: "numeric",
       minute: "2-digit",
     });
+  };
+
+  const formatCurrency = (cents: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(cents / 100);
   };
 
   if (status === "loading" || loading) {
@@ -202,7 +309,10 @@ export default function RequestDetailPage() {
                 Created on {formatDate(request.createdAt)}
               </p>
             </div>
-            <StatusBadge status={request.status} />
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge status={request.status} />
+              <PaymentStatusBadge status={request.paymentStatus} />
+            </div>
           </div>
         </div>
 
@@ -289,6 +399,146 @@ export default function RequestDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Payment Status Card */}
+            {(request.quoteAmount || request.amountPaid) && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-text-dark mb-4">Payment Summary</h2>
+                <div className="space-y-3">
+                  {request.quoteAmount && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-body">Quote Amount</span>
+                      <span className="font-semibold text-text-dark">
+                        {formatCurrency(request.quoteAmount)}
+                      </span>
+                    </div>
+                  )}
+                  {request.depositAmount && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-body">Deposit Required</span>
+                      <span className="font-medium text-text-dark">
+                        {formatCurrency(request.depositAmount)}
+                      </span>
+                    </div>
+                  )}
+                  {request.amountPaid !== null && request.amountPaid > 0 && (
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-text-body">Amount Paid</span>
+                      <span className="font-semibold text-green-600">
+                        {formatCurrency(request.amountPaid)}
+                      </span>
+                    </div>
+                  )}
+                  {request.quoteAmount && request.amountPaid !== null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-body">Remaining</span>
+                      <span className="font-semibold text-text-dark">
+                        {formatCurrency(Math.max(0, request.quoteAmount - (request.amountPaid || 0)))}
+                      </span>
+                    </div>
+                  )}
+                  {request.stripePaymentId && (
+                    <div className="pt-2 border-t">
+                      <span className="text-xs text-text-body">
+                        Stripe ID: {request.stripePaymentId}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Send Quote Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-text-dark mb-4">
+                {request.paymentStatus === "NONE" || !request.paymentStatus
+                  ? "Send Quote"
+                  : "Update Quote"}
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-body mb-1">
+                    Quote Amount ($)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-body">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={quoteAmountDollars}
+                      onChange={(e) => setQuoteAmountDollars(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      disabled={request.paymentStatus === "PAID_IN_FULL"}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-body mb-1">
+                    Deposit Amount ($) <span className="text-xs text-gray-400">(optional)</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-body">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={depositAmountDollars}
+                      onChange={(e) => setDepositAmountDollars(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      disabled={request.paymentStatus === "PAID_IN_FULL"}
+                    />
+                  </div>
+                  <p className="text-xs text-text-body mt-1">
+                    Leave empty to require full payment upfront
+                  </p>
+                </div>
+                <button
+                  onClick={handleSendQuote}
+                  disabled={
+                    sendingQuote ||
+                    !quoteAmountDollars ||
+                    request.paymentStatus === "PAID_IN_FULL"
+                  }
+                  className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {sendingQuote ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Send Quote to Customer
+                    </>
+                  )}
+                </button>
+                {quoteMessage && (
+                  <p
+                    className={`text-sm ${
+                      quoteMessage.type === "success" ? "text-green-600" : "text-red-500"
+                    }`}
+                  >
+                    {quoteMessage.text}
+                  </p>
+                )}
+                {request.paymentStatus === "PAID_IN_FULL" && (
+                  <p className="text-sm text-green-600 font-medium text-center">
+                    This request has been paid in full
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Status Update */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold text-text-dark mb-4">Update Status</h2>
@@ -299,6 +549,7 @@ export default function RequestDetailPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
                 >
                   <option value="PENDING">Pending</option>
+                  <option value="APPROVED">Approved</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="COMPLETED">Completed</option>
                   <option value="CANCELLED">Cancelled</option>
@@ -320,32 +571,6 @@ export default function RequestDetailPage() {
                   </p>
                 )}
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-text-dark mb-4">Actions</h2>
-              <button
-                onClick={() => {
-                  alert("Email functionality coming soon!");
-                }}
-                className="w-full px-4 py-2 border border-primary text-primary font-medium rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                Send Email to Customer
-              </button>
             </div>
 
             {/* Timestamps */}

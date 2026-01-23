@@ -63,6 +63,11 @@ const STATUS_INFO: Record<string, { label: string; description: string; nextStep
     description: "Your repair request has been received and is awaiting review.",
     nextSteps: "We'll review your request and send you a quote within 24 hours.",
   },
+  APPROVED: {
+    label: "Approved",
+    description: "Your repair request has been approved and payment has been received.",
+    nextSteps: "Please ship your device to us. We'll begin repairs as soon as it arrives.",
+  },
   IN_PROGRESS: {
     label: "In Progress",
     description: "Great news! We've started working on your repair.",
@@ -452,6 +457,388 @@ export async function sendStatusUpdateEmail(data: {
     return { success: true };
   } catch (error) {
     console.error("[sendStatusUpdateEmail] Exception caught:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 4: Quote email sent to customer
+export async function sendQuoteEmail(data: {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  issueDescription: string;
+  quoteAmount: number; // in cents
+  depositAmount: number | null; // in cents
+  paymentUrl: string;
+}) {
+  console.log("[sendQuoteEmail] Called with data:", {
+    ticketNumber: data.ticketNumber,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    quoteAmount: data.quoteAmount,
+    depositAmount: data.depositAmount,
+  });
+
+  const {
+    ticketNumber,
+    customerName,
+    customerEmail,
+    deviceType,
+    issueDescription,
+    quoteAmount,
+    depositAmount,
+    paymentUrl,
+  } = data;
+
+  const formattedQuote = (quoteAmount / 100).toFixed(2);
+  const formattedDeposit = depositAmount ? (depositAmount / 100).toFixed(2) : null;
+  const paymentAmount = depositAmount || quoteAmount;
+  const formattedPaymentAmount = (paymentAmount / 100).toFixed(2);
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Your Repair Quote is Ready
+    </h2>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Hi ${customerName},
+    </p>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      We've reviewed your repair request and prepared a quote for you.
+    </p>
+
+    <!-- Ticket Number Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: ${BG_LIGHT}; border-radius: 8px; padding: 16px; border-left: 4px solid ${BRAND_BLUE};">
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 14px;">
+            <strong>Ticket:</strong> ${ticketNumber}
+          </p>
+          <p style="margin: 8px 0 0 0; color: ${TEXT_DARK}; font-size: 14px;">
+            <strong>Device:</strong> ${deviceType}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Quote Amount -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #ecfdf5; border-radius: 8px; padding: 24px; text-align: center; border: 2px solid #10b981;">
+          <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+            ${depositAmount ? "Total Quote" : "Repair Quote"}
+          </p>
+          <p style="margin: 0; color: #059669; font-size: 36px; font-weight: 700;">$${formattedQuote}</p>
+          ${depositAmount ? `
+          <p style="margin: 16px 0 0 0; color: ${TEXT_BODY}; font-size: 14px;">
+            <strong>Deposit Required:</strong> $${formattedDeposit}
+          </p>
+          <p style="margin: 4px 0 0 0; color: ${TEXT_BODY}; font-size: 12px;">
+            (Remaining balance due upon completion)
+          </p>
+          ` : ""}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Issue Description -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 12px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Repair Details</p>
+          <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6; background-color: #ffffff; padding: 12px; border-radius: 4px; border: 1px solid #e2e8f0;">
+            ${issueDescription}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="text-align: center;">
+          <a href="${paymentUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 18px; font-weight: 600;">
+            Pay Now - $${formattedPaymentAmount}
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6; text-align: center;">
+      Once payment is received, we'll begin your repair right away.
+    </p>
+  `;
+
+  const emailPayload = {
+    from: "Arbafix <onboarding@resend.dev>",
+    to: customerEmail,
+    subject: `Your Repair Quote - ${ticketNumber}`,
+  };
+  console.log("[sendQuoteEmail] Email payload:", emailPayload);
+
+  try {
+    const quoteResend = new Resend(process.env.RESEND_API_KEY);
+    const { data: responseData, error } = await quoteResend.emails.send({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("[sendQuoteEmail] Resend API error:", JSON.stringify(error, null, 2));
+      return { success: false, error };
+    }
+
+    console.log("[sendQuoteEmail] Email sent successfully:", responseData);
+    return { success: true };
+  } catch (error) {
+    console.error("[sendQuoteEmail] Exception caught:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 5: Payment confirmation to customer
+export async function sendPaymentConfirmationEmail(data: {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  amountPaid: number; // in cents
+  paymentType: string; // "deposit" or "full"
+}) {
+  console.log("[sendPaymentConfirmationEmail] Called with data:", {
+    ticketNumber: data.ticketNumber,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    amountPaid: data.amountPaid,
+  });
+
+  const { ticketNumber, customerName, customerEmail, deviceType, amountPaid, paymentType } = data;
+  const formattedAmount = (amountPaid / 100).toFixed(2);
+  const isDeposit = paymentType === "deposit";
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Payment Confirmed!
+    </h2>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Hi ${customerName},
+    </p>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Thank you for your payment! Your repair request has been approved and we'll begin working on it shortly.
+    </p>
+
+    <!-- Payment Success Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #ecfdf5; border-radius: 8px; padding: 24px; text-align: center; border: 2px solid #10b981;">
+          <div style="width: 48px; height: 48px; background-color: #10b981; border-radius: 50%; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center;">
+            <span style="color: white; font-size: 24px;">✓</span>
+          </div>
+          <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+            ${isDeposit ? "Deposit Paid" : "Payment Received"}
+          </p>
+          <p style="margin: 0; color: #059669; font-size: 36px; font-weight: 700;">$${formattedAmount}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Order Details -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Order Details</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px; width: 120px;">Ticket Number:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 500;">${ticketNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Device:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px;">${deviceType}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Status:</td>
+              <td style="padding: 4px 0;">
+                <span style="background-color: ${BRAND_BLUE}; color: #ffffff; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">APPROVED</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Next Steps -->
+    <h3 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 18px; font-weight: 600;">What's Next?</h3>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="padding: 0 0 12px 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">1</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                Ship your device to our repair center
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0 0 12px 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">2</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                We'll repair your device and keep you updated
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0;">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="width: 28px; height: 28px; background-color: ${BRAND_BLUE}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="color: #ffffff; font-size: 14px; font-weight: 600;">3</span>
+              </td>
+              <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
+                We'll ship it back to you once complete
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const emailPayload = {
+    from: "Arbafix <onboarding@resend.dev>",
+    to: customerEmail,
+    subject: `Payment Confirmed - ${ticketNumber}`,
+  };
+
+  try {
+    const paymentResend = new Resend(process.env.RESEND_API_KEY);
+    const { data: responseData, error } = await paymentResend.emails.send({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("[sendPaymentConfirmationEmail] Resend API error:", JSON.stringify(error, null, 2));
+      return { success: false, error };
+    }
+
+    console.log("[sendPaymentConfirmationEmail] Email sent successfully:", responseData);
+    return { success: true };
+  } catch (error) {
+    console.error("[sendPaymentConfirmationEmail] Exception caught:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 6: Admin notification when payment is received
+export async function sendAdminPaymentNotificationEmail(data: {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  amountPaid: number; // in cents
+  paymentType: string;
+  requestId: string;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error("ADMIN_EMAIL not configured");
+    return { success: false, error: "ADMIN_EMAIL not configured" };
+  }
+
+  const { ticketNumber, customerName, customerEmail, deviceType, amountPaid, paymentType, requestId } = data;
+  const formattedAmount = (amountPaid / 100).toFixed(2);
+  const adminDashboardUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/requests/${requestId}`
+    : `/admin/requests/${requestId}`;
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Payment Received!
+    </h2>
+
+    <!-- Payment Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #ecfdf5; border-radius: 8px; padding: 20px; border-left: 4px solid #10b981;">
+          <p style="margin: 0 0 8px 0; color: ${TEXT_DARK}; font-size: 16px;">
+            <strong>Amount:</strong> $${formattedAmount} (${paymentType === "deposit" ? "Deposit" : "Full Payment"})
+          </p>
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 16px;">
+            <strong>Ticket:</strong> ${ticketNumber}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Customer Info -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Customer Information</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px; width: 100px;">Name:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 500;">${customerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Email:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px;">
+                <a href="mailto:${customerEmail}" style="color: ${BRAND_BLUE}; text-decoration: none;">${customerEmail}</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Device:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px;">${deviceType}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA Button -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+      <tr>
+        <td style="text-align: center;">
+          <a href="${adminDashboardUrl}" style="display: inline-block; background-color: ${BRAND_BLUE}; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+            View in Dashboard
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: "Arbafix <onboarding@resend.dev>",
+      to: adminEmail,
+      subject: `Payment Received - ${ticketNumber} ($${formattedAmount})`,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("Failed to send admin payment notification email:", error);
+      return { success: false, error };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send admin payment notification email:", error);
     return { success: false, error };
   }
 }

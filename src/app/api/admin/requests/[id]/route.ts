@@ -85,6 +85,19 @@ export async function PATCH(
 
     // Send status update email if status changed
     if (oldStatus !== newStatus) {
+      // Log the data being passed to the email function
+      console.log("[PATCH /api/admin/requests] Status changed, sending email notification");
+      console.log("[PATCH /api/admin/requests] Customer email from DB:", updatedRequest.customerEmail);
+      console.log("[PATCH /api/admin/requests] Full updatedRequest:", {
+        id: updatedRequest.id,
+        ticketNumber: updatedRequest.ticketNumber,
+        customerName: updatedRequest.customerName,
+        customerEmail: updatedRequest.customerEmail,
+        deviceType: updatedRequest.deviceType,
+        oldStatus,
+        newStatus,
+      });
+
       sendStatusUpdateEmail({
         ticketNumber: updatedRequest.ticketNumber,
         customerName: updatedRequest.customerName,
@@ -93,7 +106,7 @@ export async function PATCH(
         oldStatus,
         newStatus,
       }).catch((error) => {
-        console.error("Error sending status update email:", error);
+        console.error("[PATCH /api/admin/requests] Error sending status update email:", error);
       });
     }
 

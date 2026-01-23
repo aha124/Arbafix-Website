@@ -91,6 +91,14 @@ interface RepairRequestData {
 
 // Email 1: Customer confirmation when they submit a request
 export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
+  // Log input data for debugging (same as status update email for comparison)
+  console.log("[sendCustomerConfirmationEmail] Called with data:", {
+    ticketNumber: data.ticketNumber,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    deviceType: data.deviceType,
+  });
+
   const { ticketNumber, customerName, customerEmail, deviceType, issueDescription } = data;
 
   const content = `
@@ -181,22 +189,32 @@ export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
     </p>
   `;
 
+  // Log the full email payload before sending
+  const emailPayload = {
+    from: "Arbafix <onboarding@resend.dev>",
+    to: customerEmail,
+    subject: `Repair Request Received - ${ticketNumber}`,
+  };
+  console.log("[sendCustomerConfirmationEmail] Email payload:", emailPayload);
+
   try {
-    const { error } = await resend.emails.send({
-      from: "Arbafix <onboarding@resend.dev>",
-      to: customerEmail,
-      subject: `Repair Request Received - ${ticketNumber}`,
+    console.log("[sendCustomerConfirmationEmail] Calling resend.emails.send()...");
+    const { data: responseData, error } = await resend.emails.send({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
       html: emailWrapper(content),
     });
 
     if (error) {
-      console.error("Failed to send customer confirmation email:", error);
+      console.error("[sendCustomerConfirmationEmail] Resend API error:", JSON.stringify(error, null, 2));
       return { success: false, error };
     }
 
+    console.log("[sendCustomerConfirmationEmail] Email sent successfully:", responseData);
     return { success: true };
   } catch (error) {
-    console.error("Failed to send customer confirmation email:", error);
+    console.error("[sendCustomerConfirmationEmail] Exception caught:", error);
     return { success: false, error };
   }
 }
@@ -317,6 +335,22 @@ export async function sendStatusUpdateEmail(data: {
   oldStatus: string;
   newStatus: string;
 }) {
+  // Log input data for debugging
+  console.log("[sendStatusUpdateEmail] Called with data:", {
+    ticketNumber: data.ticketNumber,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    deviceType: data.deviceType,
+    oldStatus: data.oldStatus,
+    newStatus: data.newStatus,
+  });
+
+  // Validate customer email
+  if (!data.customerEmail) {
+    console.error("[sendStatusUpdateEmail] ERROR: customerEmail is undefined or empty");
+    return { success: false, error: "Customer email is missing" };
+  }
+
   const { ticketNumber, customerName, customerEmail, deviceType, newStatus } = data;
   const statusInfo = STATUS_INFO[newStatus] || STATUS_INFO.PENDING;
 
@@ -374,22 +408,32 @@ export async function sendStatusUpdateEmail(data: {
     </p>
   `;
 
+  // Log the full email payload before sending
+  const emailPayload = {
+    from: "Arbafix <onboarding@resend.dev>",
+    to: customerEmail,
+    subject: `Repair Update - ${ticketNumber}`,
+  };
+  console.log("[sendStatusUpdateEmail] Email payload:", emailPayload);
+
   try {
-    const { error } = await resend.emails.send({
-      from: "Arbafix <onboarding@resend.dev>",
-      to: customerEmail,
-      subject: `Repair Update - ${ticketNumber}`,
+    console.log("[sendStatusUpdateEmail] Calling resend.emails.send()...");
+    const { data: responseData, error } = await resend.emails.send({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
       html: emailWrapper(content),
     });
 
     if (error) {
-      console.error("Failed to send status update email:", error);
+      console.error("[sendStatusUpdateEmail] Resend API error:", JSON.stringify(error, null, 2));
       return { success: false, error };
     }
 
+    console.log("[sendStatusUpdateEmail] Email sent successfully:", responseData);
     return { success: true };
   } catch (error) {
-    console.error("Failed to send status update email:", error);
+    console.error("[sendStatusUpdateEmail] Exception caught:", error);
     return { success: false, error };
   }
 }

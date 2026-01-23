@@ -42,6 +42,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('[PATCH] Function started');
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -76,6 +77,8 @@ export async function PATCH(
     const oldStatus = currentRequest.status;
     const newStatus = body.status;
 
+    console.log('[PATCH] Comparing status:', { oldStatus, newStatus, willSendEmail: oldStatus !== newStatus });
+
     const updatedRequest = await prisma.repairRequest.update({
       where: { id },
       data: {
@@ -98,6 +101,7 @@ export async function PATCH(
         newStatus,
       });
 
+      console.log('[PATCH] About to enter email try block');
       try {
         console.log('[PATCH] Awaiting email send...');
         await sendStatusUpdateEmail({
@@ -112,8 +116,10 @@ export async function PATCH(
       } catch (emailError) {
         console.error('[PATCH] Email failed:', emailError);
       }
+      console.log('[PATCH] Finished email try/catch block');
     }
 
+    console.log('[PATCH] About to return response');
     return NextResponse.json({ request: updatedRequest });
   } catch (error) {
     console.error("Error updating request:", error);

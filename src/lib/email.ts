@@ -1,6 +1,18 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to ensure API key is read at request time, not module load time
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.error("RESEND_API_KEY environment variable is not set");
+    }
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 // Brand colors
 const BRAND_BLUE = "#2563eb";
@@ -182,7 +194,8 @@ export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
   `;
 
   try {
-    const { error } = await resend.emails.send({
+    const resend = getResendClient();
+    const { data, error } = await resend.emails.send({
       from: "Arbafix <onboarding@resend.dev>",
       to: customerEmail,
       subject: `Repair Request Received - ${ticketNumber}`,
@@ -190,13 +203,14 @@ export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
     });
 
     if (error) {
-      console.error("Failed to send customer confirmation email:", error);
+      console.error("Failed to send customer confirmation email:", JSON.stringify(error, null, 2));
       return { success: false, error };
     }
 
+    console.log("Customer confirmation email sent successfully:", data?.id);
     return { success: true };
   } catch (error) {
-    console.error("Failed to send customer confirmation email:", error);
+    console.error("Failed to send customer confirmation email:", error instanceof Error ? error.message : error);
     return { success: false, error };
   }
 }
@@ -289,7 +303,8 @@ export async function sendAdminNotificationEmail(data: RepairRequestData & { req
   `;
 
   try {
-    const { error } = await resend.emails.send({
+    const resend = getResendClient();
+    const { data, error } = await resend.emails.send({
       from: "Arbafix <onboarding@resend.dev>",
       to: adminEmail,
       subject: `New Repair Request - ${ticketNumber}`,
@@ -297,13 +312,14 @@ export async function sendAdminNotificationEmail(data: RepairRequestData & { req
     });
 
     if (error) {
-      console.error("Failed to send admin notification email:", error);
+      console.error("Failed to send admin notification email:", JSON.stringify(error, null, 2));
       return { success: false, error };
     }
 
+    console.log("Admin notification email sent successfully:", data?.id);
     return { success: true };
   } catch (error) {
-    console.error("Failed to send admin notification email:", error);
+    console.error("Failed to send admin notification email:", error instanceof Error ? error.message : error);
     return { success: false, error };
   }
 }
@@ -375,7 +391,10 @@ export async function sendStatusUpdateEmail(data: {
   `;
 
   try {
-    const { error } = await resend.emails.send({
+    const resend = getResendClient();
+    console.log("Sending status update email to:", customerEmail, "for ticket:", ticketNumber);
+
+    const { data, error } = await resend.emails.send({
       from: "Arbafix <onboarding@resend.dev>",
       to: customerEmail,
       subject: `Repair Update - ${ticketNumber}`,
@@ -383,13 +402,14 @@ export async function sendStatusUpdateEmail(data: {
     });
 
     if (error) {
-      console.error("Failed to send status update email:", error);
+      console.error("Failed to send status update email:", JSON.stringify(error, null, 2));
       return { success: false, error };
     }
 
+    console.log("Status update email sent successfully:", data?.id);
     return { success: true };
   } catch (error) {
-    console.error("Failed to send status update email:", error);
+    console.error("Failed to send status update email:", error instanceof Error ? error.message : error);
     return { success: false, error };
   }
 }

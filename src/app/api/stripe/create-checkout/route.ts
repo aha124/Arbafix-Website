@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://arbafix.com';
 
     // Create Stripe Checkout Session
     const session = await getStripeClient().checkout.sessions.create({
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: "payment",
-      success_url: `${appUrl}/payment/success?ticket=${ticketNumber}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/payment/cancelled?ticket=${ticketNumber}`,
+      success_url: `${baseUrl}/payment/success?ticket=${ticketNumber}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/payment/cancelled?ticket=${ticketNumber}`,
       customer_email: repairRequest.customerEmail,
       metadata: {
         ticketNumber,

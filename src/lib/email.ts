@@ -326,6 +326,16 @@ export async function sendAdminNotificationEmail(data: RepairRequestData & { req
   }
 }
 
+// Helper function to add timeout to a promise
+function withTimeout<T>(promise: Promise<T>, ms: number, operation: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${operation} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 // Email 3: Customer notification when status changes
 export async function sendStatusUpdateEmail(data: {
   ticketNumber: string;
@@ -417,13 +427,21 @@ export async function sendStatusUpdateEmail(data: {
   console.log("[sendStatusUpdateEmail] Email payload:", emailPayload);
 
   try {
-    console.log("[sendStatusUpdateEmail] Calling resend.emails.send()...");
-    const { data: responseData, error } = await resend.emails.send({
-      from: emailPayload.from,
-      to: emailPayload.to,
-      subject: emailPayload.subject,
-      html: emailWrapper(content),
-    });
+    // Create a fresh Resend client for each status update email
+    // This avoids potential connection issues with shared client instances in serverless environments
+    const statusResend = new Resend(process.env.RESEND_API_KEY);
+
+    console.log("[sendStatusUpdateEmail] Calling resend.emails.send() with 5s timeout...");
+    const { data: responseData, error } = await withTimeout(
+      statusResend.emails.send({
+        from: emailPayload.from,
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        html: emailWrapper(content),
+      }),
+      5000,
+      "Status update email send"
+    );
 
     if (error) {
       console.error("[sendStatusUpdateEmail] Resend API error:", JSON.stringify(error, null, 2));

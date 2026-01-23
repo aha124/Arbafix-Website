@@ -54,7 +54,7 @@ export async function PATCH(
     const body = await request.json();
 
     // Validate status
-    const validStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+    const validStatuses = ["PENDING", "APPROVED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
     if (body.status && !validStatuses.includes(body.status)) {
       return NextResponse.json(
         { error: "Invalid status" },

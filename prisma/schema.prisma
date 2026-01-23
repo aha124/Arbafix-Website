@@ -23,4 +23,12 @@ model RepairRequest {
   shippingZip      String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // Payment fields
+  quoteAmount      Int?
+  depositAmount    Int?
+  amountPaid       Int?
+  paymentStatus    String?  @default("NONE")
+  stripePaymentId  String?
+  stripeSessionId  String?
 }

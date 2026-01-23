@@ -11,6 +11,7 @@ export default function Footer() {
     company: [
       { label: "About Us", href: "#about" },
       { label: "How It Works", href: "#how-it-works" },
+      { label: "Track Repair", href: "/track" },
       { label: "FAQ", href: "#" },
       { label: "Contact", href: "#contact" },
     ],

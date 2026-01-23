@@ -87,6 +87,10 @@ vercel
 - **Primary (Blue)**: #2563eb
 - **Success (Green)**: #16a34a
 
+## TODO
+
+- [ ] Update to business email (e.g., support@arbafix.com) before launch - currently using personal Gmail
+
 ## License
 
 All rights reserved.

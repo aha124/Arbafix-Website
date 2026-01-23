@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import {
+  sendCustomerConfirmationEmail,
+  sendAdminNotificationEmail,
+} from "@/lib/email";
 
 function generateTicketNumber(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -75,6 +79,25 @@ export async function POST(request: NextRequest) {
         shippingState: body.shippingState,
         shippingZip: body.shippingZip,
       },
+    });
+
+    // Send confirmation emails (non-blocking)
+    const emailData = {
+      ticketNumber: repairRequest.ticketNumber,
+      customerName: repairRequest.customerName,
+      customerEmail: repairRequest.customerEmail,
+      deviceType: repairRequest.deviceType,
+      issueDescription: repairRequest.issueDescription,
+      commonIssues: repairRequest.commonIssues,
+      requestId: repairRequest.id,
+    };
+
+    // Send emails in parallel, don't block response
+    Promise.all([
+      sendCustomerConfirmationEmail(emailData),
+      sendAdminNotificationEmail(emailData),
+    ]).catch((error) => {
+      console.error("Error sending confirmation emails:", error);
     });
 
     return NextResponse.json(

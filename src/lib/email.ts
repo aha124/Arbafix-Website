@@ -431,7 +431,7 @@ export async function sendStatusUpdateEmail(data: {
     // This avoids potential connection issues with shared client instances in serverless environments
     const statusResend = new Resend(process.env.RESEND_API_KEY);
 
-    console.log("[sendStatusUpdateEmail] Calling resend.emails.send() with 5s timeout...");
+    console.log("[sendStatusUpdateEmail] Calling resend.emails.send() with 30s timeout...");
     const { data: responseData, error } = await withTimeout(
       statusResend.emails.send({
         from: emailPayload.from,
@@ -439,7 +439,7 @@ export async function sendStatusUpdateEmail(data: {
         subject: emailPayload.subject,
         html: emailWrapper(content),
       }),
-      5000,
+      30000,
       "Status update email send"
     );
 

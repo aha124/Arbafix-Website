@@ -5,7 +5,13 @@ import { prisma } from "@/lib/db";
 import { sendQuoteEmail } from "@/lib/email";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy initialization to avoid build-time errors when env vars aren't available
+function getStripeClient(): Stripe {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
 
 export async function POST(
   request: NextRequest,
@@ -55,7 +61,7 @@ export async function POST(
     const paymentAmount = depositAmount || quoteAmount;
     const paymentType = depositAmount ? "deposit" : "full";
 
-    const stripeSession = await stripe.checkout.sessions.create({
+    const stripeSession = await getStripeClient().checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {

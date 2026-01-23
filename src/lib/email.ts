@@ -1,6 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid build-time errors when env vars aren't available
+function getResendClient(): Resend {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 // Brand colors
 const BRAND_BLUE = "#2563eb";
@@ -204,7 +210,7 @@ export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
 
   try {
     console.log("[sendCustomerConfirmationEmail] Calling resend.emails.send()...");
-    const { data: responseData, error } = await resend.emails.send({
+    const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
       subject: emailPayload.subject,
@@ -312,7 +318,7 @@ export async function sendAdminNotificationEmail(data: RepairRequestData & { req
   `;
 
   try {
-    const { error } = await resend.emails.send({
+    const { error } = await getResendClient().emails.send({
       from: "Arbafix <onboarding@resend.dev>",
       to: adminEmail,
       subject: `New Repair Request - ${ticketNumber}`,
@@ -432,13 +438,9 @@ export async function sendStatusUpdateEmail(data: {
   console.log("[sendStatusUpdateEmail] Email payload:", emailPayload);
 
   try {
-    // Create a fresh Resend client for each status update email
-    // This avoids potential connection issues with shared client instances in serverless environments
-    const statusResend = new Resend(process.env.RESEND_API_KEY);
-
     console.log("[sendStatusUpdateEmail] Calling resend.emails.send() with 30s timeout...");
     const { data: responseData, error } = await withTimeout(
-      statusResend.emails.send({
+      getResendClient().emails.send({
         from: emailPayload.from,
         to: emailPayload.to,
         subject: emailPayload.subject,
@@ -577,8 +579,7 @@ export async function sendQuoteEmail(data: {
   console.log("[sendQuoteEmail] Email payload:", emailPayload);
 
   try {
-    const quoteResend = new Resend(process.env.RESEND_API_KEY);
-    const { data: responseData, error } = await quoteResend.emails.send({
+    const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
       subject: emailPayload.subject,
@@ -724,8 +725,7 @@ export async function sendPaymentConfirmationEmail(data: {
   };
 
   try {
-    const paymentResend = new Resend(process.env.RESEND_API_KEY);
-    const { data: responseData, error } = await paymentResend.emails.send({
+    const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
       subject: emailPayload.subject,
@@ -824,7 +824,7 @@ export async function sendAdminPaymentNotificationEmail(data: {
   `;
 
   try {
-    const { error } = await resend.emails.send({
+    const { error } = await getResendClient().emails.send({
       from: "Arbafix <onboarding@resend.dev>",
       to: adminEmail,
       subject: `Payment Received - ${ticketNumber} ($${formattedAmount})`,

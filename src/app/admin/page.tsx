@@ -12,6 +12,11 @@ interface Stats {
   completedThisMonth: number;
 }
 
+interface BlogStats {
+  published: number;
+  drafts: number;
+}
+
 interface RepairRequest {
   id: string;
   ticketNumber: string;
@@ -51,6 +56,7 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [blogStats, setBlogStats] = useState<BlogStats | null>(null);
   const [recentRequests, setRecentRequests] = useState<RepairRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,9 +74,10 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, requestsRes] = await Promise.all([
+      const [statsRes, requestsRes, blogRes] = await Promise.all([
         fetch("/api/admin/stats"),
         fetch("/api/admin/requests?limit=5"),
+        fetch("/api/admin/blog"),
       ]);
 
       if (statsRes.ok) {
@@ -81,6 +88,13 @@ export default function AdminDashboard() {
       if (requestsRes.ok) {
         const requestsData = await requestsRes.json();
         setRecentRequests(requestsData.requests);
+      }
+
+      if (blogRes.ok) {
+        const blogData = await blogRes.json();
+        const published = blogData.posts.filter((p: { published: boolean }) => p.published).length;
+        const drafts = blogData.posts.filter((p: { published: boolean }) => !p.published).length;
+        setBlogStats({ published, drafts });
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -232,6 +246,49 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Blog Posts Card */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-purple-50">
+                <svg
+                  className="w-5 h-5 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text-dark">Blog Posts</h2>
+                <p className="text-sm text-text-body">
+                  {blogStats ? (
+                    <>
+                      <span className="text-success font-medium">{blogStats.published} published</span>
+                      {" · "}
+                      <span className="text-yellow-600 font-medium">{blogStats.drafts} drafts</span>
+                    </>
+                  ) : (
+                    "Loading..."
+                  )}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/admin/blog"
+              className="px-4 py-2 bg-primary text-white font-medium text-sm rounded-lg hover:bg-primary-dark transition-colors"
+            >
+              Manage Blog →
+            </Link>
           </div>
         </div>
 

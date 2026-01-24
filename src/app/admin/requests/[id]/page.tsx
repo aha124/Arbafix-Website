@@ -31,6 +31,9 @@ interface RepairRequest {
   // Tracking fields
   trackingNumber: string | null;
   trackingCarrier: string | null;
+  // Shippo label fields
+  labelUrl: string | null;
+  trackingUrl: string | null;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -280,6 +283,57 @@ export default function RequestDetailPage() {
     } catch (error) {
       console.error("Error requesting final payment:", error);
       showMessage("error", "Failed to request final payment");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleGenerateLabel = async () => {
+    if (!request) return;
+
+    setActionLoading("generate-label");
+
+    try {
+      const res = await fetch(`/api/admin/requests/${request.id}/generate-label`, {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showMessage("success", "Shipping label generated successfully! Customer has been notified.");
+        fetchRequest();
+      } else {
+        showMessage("error", data.error || "Failed to generate shipping label");
+      }
+    } catch (error) {
+      console.error("Error generating label:", error);
+      showMessage("error", "Failed to generate shipping label");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResendTrackingEmail = async () => {
+    if (!request) return;
+
+    setActionLoading("resend-tracking");
+
+    try {
+      const res = await fetch(`/api/admin/requests/${request.id}/resend-tracking`, {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        showMessage("success", "Tracking email sent successfully!");
+      } else {
+        showMessage("error", data.error || "Failed to send tracking email");
+      }
+    } catch (error) {
+      console.error("Error resending tracking email:", error);
+      showMessage("error", "Failed to send tracking email");
     } finally {
       setActionLoading(null);
     }
@@ -703,12 +757,94 @@ export default function RequestDetailPage() {
                   </button>
                 )}
 
-                {/* REPAIR_COMPLETE or PAID_IN_FULL -> Ship with tracking */}
-                {(request.status === "REPAIR_COMPLETE" && request.paymentStatus === "PAID_IN_FULL") && (
+                {/* PAID_IN_FULL -> Generate shipping label or show label info */}
+                {request.paymentStatus === "PAID_IN_FULL" && !request.labelUrl && (
+                  <button
+                    onClick={handleGenerateLabel}
+                    disabled={actionLoading === "generate-label"}
+                    className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {actionLoading === "generate-label" ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Generate Return Label
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* Show label info when label exists */}
+                {request.labelUrl && (
                   <div className="space-y-3">
+                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <p className="text-sm text-green-800 font-medium mb-2">Shipping Label Generated</p>
+                      {request.trackingNumber && (
+                        <div className="mb-3">
+                          <p className="text-xs text-green-700 mb-1">Tracking Number:</p>
+                          {request.trackingUrl ? (
+                            <a
+                              href={request.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-mono text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {request.trackingNumber}
+                            </a>
+                          ) : (
+                            <span className="text-sm font-mono text-green-800">{request.trackingNumber}</span>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <a
+                          href={request.labelUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full px-3 py-2 bg-white text-green-700 font-medium rounded-lg border border-green-300 hover:bg-green-50 transition-colors flex items-center justify-center gap-2 text-sm"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Download Label
+                        </a>
+                        <button
+                          onClick={handleResendTrackingEmail}
+                          disabled={actionLoading === "resend-tracking"}
+                          className="w-full px-3 py-2 bg-white text-blue-700 font-medium rounded-lg border border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading === "resend-tracking" ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              Resend Tracking Email
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual shipping option when PAID_IN_FULL but want to use own label */}
+                {(request.status === "REPAIR_COMPLETE" && request.paymentStatus === "PAID_IN_FULL" && !request.labelUrl) && (
+                  <div className="space-y-3 pt-3 border-t mt-3">
+                    <p className="text-xs text-text-body">Or ship manually with your own label:</p>
                     <div>
                       <label className="block text-sm font-medium text-text-body mb-1">
-                        Tracking Number (optional)
+                        Tracking Number
                       </label>
                       <input
                         type="text"
@@ -720,7 +856,7 @@ export default function RequestDetailPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-text-body mb-1">
-                        Carrier (optional)
+                        Carrier
                       </label>
                       <select
                         value={trackingCarrier}
@@ -737,8 +873,8 @@ export default function RequestDetailPage() {
                     </div>
                     <button
                       onClick={() => handleStatusUpdate("SHIPPED")}
-                      disabled={actionLoading === "SHIPPED"}
-                      className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      disabled={actionLoading === "SHIPPED" || !trackingNumber}
+                      className="w-full px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {actionLoading === "SHIPPED" ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
@@ -747,13 +883,13 @@ export default function RequestDetailPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                       )}
-                      Mark as Shipped
+                      Mark as Shipped Manually
                     </button>
                   </div>
                 )}
 
-                {/* Show tracking info if shipped */}
-                {request.status === "SHIPPED" && (request.trackingNumber || request.trackingCarrier) && (
+                {/* Show tracking info if shipped (without Shippo label UI - that's shown above) */}
+                {request.status === "SHIPPED" && !request.labelUrl && (request.trackingNumber || request.trackingCarrier) && (
                   <div className="bg-green-50 rounded-lg p-3">
                     <p className="text-sm text-green-800 font-medium mb-1">Shipped</p>
                     {request.trackingCarrier && (

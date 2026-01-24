@@ -38,4 +38,8 @@ model RepairRequest {
   // Shipping tracking
   trackingNumber   String?
   trackingCarrier  String?
+
+  // Shippo return label
+  labelUrl         String?
+  trackingUrl      String?
 }

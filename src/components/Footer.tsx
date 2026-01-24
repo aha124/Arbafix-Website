@@ -13,7 +13,7 @@ export default function Footer() {
       { label: "How It Works", href: "/#how-it-works" },
       { label: "Track Repair", href: "/track" },
       { label: "FAQ", href: "/faq" },
-      { label: "Contact", href: "/#contact" },
+      { label: "Contact", href: "/contact" },
     ],
     legal: [
       { label: "Privacy Policy", href: "/privacy" },

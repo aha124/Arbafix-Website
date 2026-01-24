@@ -12,6 +12,7 @@ export default function Footer() {
       { label: "About Us", href: "/#about" },
       { label: "How It Works", href: "/#how-it-works" },
       { label: "Track Repair", href: "/track" },
+      { label: "Blog", href: "/blog" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
     ],

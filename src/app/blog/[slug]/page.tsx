@@ -138,7 +138,7 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Article Content */}
           <div
-            className="prose prose-lg max-w-none prose-headings:text-text-dark prose-p:text-text-body prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl"
+            className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-600 prose-p:leading-relaxed prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-strong:text-gray-900 prose-img:rounded-xl prose-ul:text-gray-600 prose-ol:text-gray-600 prose-li:marker:text-gray-400"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         </div>

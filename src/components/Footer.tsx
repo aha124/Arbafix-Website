@@ -47,11 +47,11 @@ export default function Footer() {
                 repairs@arbafix.com
               </a>
               <a
-                href="tel:+17175551234"
+                href="tel:+15704198540"
                 className="flex items-center gap-3 text-gray-400 hover:text-white transition-colors"
               >
                 <Phone className="w-5 h-5" />
-                (717) 555-1234
+                (570) 419-8540
               </a>
               <div className="flex items-center gap-3 text-gray-400">
                 <MapPin className="w-5 h-5" />

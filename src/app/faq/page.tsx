@@ -102,7 +102,7 @@ export default function FAQPage() {
               Still Have Questions?
             </h2>
             <p className="text-text-body mb-8 max-w-xl mx-auto">
-              Can't find what you're looking for? Start a repair request and we'll be happy to help with any specific questions about your device.
+              Can&apos;t find what you&apos;re looking for? Start a repair request and we&apos;ll be happy to help with any specific questions about your device.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

@@ -56,7 +56,7 @@ export default function WarrantyPage() {
                 Every repair completed by Arbafix comes with our comprehensive <strong>90-day warranty</strong>. We believe in the quality of our work, and we want you to feel confident that your device is in good hands.
               </p>
               <p className="text-text-body leading-relaxed mb-6">
-                Our warranty covers both parts and labor on the repair we performed. If the same issue recurs within 90 days of receiving your repaired device, simply contact us and we'll make it right—at no additional cost to you.
+                Our warranty covers both parts and labor on the repair we performed. If the same issue recurs within 90 days of receiving your repaired device, simply contact us and we&apos;ll make it right—at no additional cost to you.
               </p>
               <div className="bg-green-50 border border-green-100 rounded-lg p-6">
                 <p className="text-green-800 font-medium">
@@ -73,7 +73,7 @@ export default function WarrantyPage() {
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
-                  <h3 className="text-xl font-bold text-text-dark">What's Covered</h3>
+                  <h3 className="text-xl font-bold text-text-dark">What&apos;s Covered</h3>
                 </div>
                 <ul className="space-y-4">
                   {covered.map((item, index) => (
@@ -91,7 +91,7 @@ export default function WarrantyPage() {
                   <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                     <XCircle className="w-5 h-5 text-red-600" />
                   </div>
-                  <h3 className="text-xl font-bold text-text-dark">What's Not Covered</h3>
+                  <h3 className="text-xl font-bold text-text-dark">What&apos;s Not Covered</h3>
                 </div>
                 <ul className="space-y-4">
                   {notCovered.map((item, index) => (
@@ -113,7 +113,7 @@ export default function WarrantyPage() {
                 <h2 className="text-2xl font-bold text-text-dark">How to Make a Warranty Claim</h2>
               </div>
               <p className="text-text-body leading-relaxed mb-6">
-                If you experience the same issue with your device within 90 days of receiving it back from us, here's how to get it resolved:
+                If you experience the same issue with your device within 90 days of receiving it back from us, here&apos;s how to get it resolved:
               </p>
               <ol className="list-decimal pl-6 text-text-body space-y-4 mb-6">
                 <li>
@@ -130,17 +130,17 @@ export default function WarrantyPage() {
                   <strong>Provide your ticket number</strong> from the original repair so we can look up your repair history
                 </li>
                 <li>
-                  <strong>Describe the issue</strong> you're experiencing so we can assess if it's covered under warranty
+                  <strong>Describe the issue</strong> you&apos;re experiencing so we can assess if it&apos;s covered under warranty
                 </li>
                 <li>
-                  <strong>Ship your device back</strong> using the prepaid label we'll provide for warranty repairs
+                  <strong>Ship your device back</strong> using the prepaid label we&apos;ll provide for warranty repairs
                 </li>
                 <li>
-                  <strong>We'll repair it</strong> and ship it back to you at no additional cost
+                  <strong>We&apos;ll repair it</strong> and ship it back to you at no additional cost
                 </li>
               </ol>
               <p className="text-text-body leading-relaxed">
-                Most warranty claims are processed within 3-5 business days of receiving your device. We'll keep you updated every step of the way.
+                Most warranty claims are processed within 3-5 business days of receiving your device. We&apos;ll keep you updated every step of the way.
               </p>
             </div>
           </div>

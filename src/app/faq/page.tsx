@@ -24,7 +24,7 @@ export default function FAQPage() {
     {
       icon: Package,
       question: "How do I ship my device?",
-      answer: "After paying your deposit, we'll email you detailed shipping instructions along with a prepaid return shipping label. Pack your device securely and drop it off at any UPS location.",
+      answer: "After paying your deposit, we'll email you our shipping address. Pack your device securely and ship it to us using your preferred carrier (USPS, UPS, FedEx, etc.). Once your repair is complete and paid in full, we'll ship it back to you for free with a prepaid USPS label and provide tracking information.",
     },
     {
       icon: CreditCard,

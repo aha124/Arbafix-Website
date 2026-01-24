@@ -3,17 +3,17 @@ import { Wrench, Mail, Phone, MapPin } from "lucide-react";
 export default function Footer() {
   const links = {
     services: [
-      { label: "Nintendo Repair", href: "#services" },
-      { label: "PlayStation Repair", href: "#services" },
-      { label: "Xbox Repair", href: "#services" },
-      { label: "Retro Console Repair", href: "#services" },
+      { label: "Nintendo Repair", href: "/#services" },
+      { label: "PlayStation Repair", href: "/#services" },
+      { label: "Xbox Repair", href: "/#services" },
+      { label: "Retro Console Repair", href: "/#services" },
     ],
     company: [
-      { label: "About Us", href: "#about" },
-      { label: "How It Works", href: "#how-it-works" },
+      { label: "About Us", href: "/#about" },
+      { label: "How It Works", href: "/#how-it-works" },
       { label: "Track Repair", href: "/track" },
       { label: "FAQ", href: "/faq" },
-      { label: "Contact", href: "#contact" },
+      { label: "Contact", href: "/#contact" },
     ],
     legal: [
       { label: "Privacy Policy", href: "/privacy" },

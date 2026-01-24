@@ -731,6 +731,42 @@ export async function sendPaymentConfirmationEmail(data: {
     <!-- Next Steps -->
     <h3 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 18px; font-weight: 600;">What's Next?</h3>
     ${isDeposit ? `
+    <!-- Shipping Instructions -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #eff6ff; border-radius: 8px; padding: 20px; border: 1px solid #bfdbfe;">
+          <p style="margin: 0 0 12px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">
+            Shipping Instructions
+          </p>
+          <p style="margin: 0 0 16px 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+            Please ship your device to our repair center at the following address:
+          </p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 16px; background-color: #ffffff; border-radius: 6px; padding: 12px;">
+            <tr>
+              <td style="padding: 12px;">
+                <p style="margin: 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 600;">
+                  ${process.env.BUSINESS_ADDRESS_NAME || "Arbafix"}<br/>
+                  ${process.env.BUSINESS_ADDRESS_STREET || ""}<br/>
+                  ${process.env.BUSINESS_ADDRESS_CITY || "Hershey"}, ${process.env.BUSINESS_ADDRESS_STATE || "PA"} ${process.env.BUSINESS_ADDRESS_ZIP || "17033"}
+                </p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 8px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 600;">
+            Tips for shipping:
+          </p>
+          <ul style="margin: 0; padding-left: 20px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.8;">
+            <li>Pack your device securely with adequate padding</li>
+            <li>Include your ticket number <strong style="color: ${TEXT_DARK};">${ticketNumber}</strong> written on a piece of paper inside the package</li>
+            <li>We recommend using a trackable shipping method</li>
+          </ul>
+          <p style="margin: 16px 0 0 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6;">
+            We'll notify you when we receive your device.
+          </p>
+        </td>
+      </tr>
+    </table>
+
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
       <tr>
         <td style="padding: 0 0 12px 0;">
@@ -740,7 +776,7 @@ export async function sendPaymentConfirmationEmail(data: {
                 <span style="color: #ffffff; font-size: 14px; font-weight: 600;">1</span>
               </td>
               <td style="padding-left: 12px; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.5;">
-                Ship your device to our repair center
+                Ship your device to our repair center (address above)
               </td>
             </tr>
           </table>
@@ -1083,6 +1119,119 @@ export async function sendFinalPaymentEmail(data: {
     return { success: true };
   } catch (error) {
     console.error("[sendFinalPaymentEmail] Exception caught:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 8: Shipping notification when device is shipped back to customer
+export async function sendShippingNotificationEmail(data: {
+  ticketNumber: string;
+  customerName: string;
+  customerEmail: string;
+  deviceType: string;
+  trackingNumber: string;
+  trackingUrl: string;
+}) {
+  console.log("[sendShippingNotificationEmail] Called with data:", {
+    ticketNumber: data.ticketNumber,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    deviceType: data.deviceType,
+    trackingNumber: data.trackingNumber,
+  });
+
+  const {
+    ticketNumber,
+    customerName,
+    customerEmail,
+    deviceType,
+    trackingNumber,
+    trackingUrl,
+  } = data;
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      Your Device is On Its Way!
+    </h2>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Hi ${customerName},
+    </p>
+    <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
+      Great news! Your <strong style="color: ${TEXT_DARK};">${deviceType}</strong> has been repaired and shipped.
+    </p>
+
+    <!-- Ticket Info -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: ${BG_LIGHT}; border-radius: 8px; padding: 16px; border-left: 4px solid #10b981;">
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 14px;">
+            <strong>Ticket:</strong> ${ticketNumber}
+          </p>
+          <p style="margin: 8px 0 0 0; color: ${TEXT_DARK}; font-size: 14px;">
+            <strong>Device:</strong> ${deviceType}
+          </p>
+          <p style="margin: 8px 0 0 0; color: #10b981; font-size: 14px; font-weight: 600;">
+            Status: Shipped
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Tracking Info -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #ecfdf5; border-radius: 8px; padding: 24px; text-align: center; border: 2px solid #10b981;">
+          <div style="width: 48px; height: 48px; background-color: #10b981; border-radius: 50%; margin: 0 auto 16px auto;">
+            <table role="presentation" width="100%" height="100%">
+              <tr>
+                <td style="text-align: center; vertical-align: middle; color: white; font-size: 20px;">
+                  &#10003;
+                </td>
+              </tr>
+            </table>
+          </div>
+          <p style="margin: 0 0 8px 0; color: ${TEXT_BODY}; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+            Tracking Number
+          </p>
+          <p style="margin: 0 0 16px 0; color: #059669; font-size: 20px; font-weight: 700; font-family: monospace;">
+            ${trackingNumber}
+          </p>
+          <a href="${trackingUrl}" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+            Track Your Package
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; line-height: 1.6; text-align: center;">
+      Thank you for choosing Arbafix! We hope your device serves you well.
+    </p>
+  `;
+
+  const emailPayload = {
+    from: "Arbafix <onboarding@resend.dev>",
+    to: customerEmail,
+    subject: `Your Device is On Its Way! - ${ticketNumber}`,
+  };
+  console.log("[sendShippingNotificationEmail] Email payload:", emailPayload);
+
+  try {
+    const { data: responseData, error } = await getResendClient().emails.send({
+      from: emailPayload.from,
+      to: emailPayload.to,
+      subject: emailPayload.subject,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("[sendShippingNotificationEmail] Resend API error:", JSON.stringify(error, null, 2));
+      return { success: false, error };
+    }
+
+    console.log("[sendShippingNotificationEmail] Email sent successfully:", responseData);
+    return { success: true };
+  } catch (error) {
+    console.error("[sendShippingNotificationEmail] Exception caught:", error);
     return { success: false, error };
   }
 }

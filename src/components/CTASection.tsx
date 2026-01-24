@@ -22,8 +22,8 @@ export default function CTASection() {
         </div>
         <p className="mt-6 text-blue-200 text-sm">
           Or call us at{" "}
-          <a href="tel:+17175551234" className="underline hover:text-white">
-            (717) 555-1234
+          <a href="tel:+15704198540" className="underline hover:text-white">
+            (570) 419-8540
           </a>
         </p>
       </div>

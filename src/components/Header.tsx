@@ -17,10 +17,10 @@ export default function Header() {
   ];
 
   const navLinks = [
-    { href: "#how-it-works", label: "How It Works" },
+    { href: "/#how-it-works", label: "How It Works" },
     { href: "/track", label: "Track Repair" },
-    { href: "#about", label: "About" },
-    { href: "#contact", label: "Contact" },
+    { href: "/#about", label: "About" },
+    { href: "/#contact", label: "Contact" },
   ];
 
   // Close dropdown when clicking outside
@@ -107,7 +107,7 @@ export default function Header() {
           {/* CTA Button */}
           <div className="hidden md:block">
             <a
-              href="#contact"
+              href="/#contact"
               className="inline-flex items-center px-5 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors shadow-sm"
             >
               Get a Free Quote
@@ -177,7 +177,7 @@ export default function Header() {
                 </a>
               ))}
               <a
-                href="#contact"
+                href="/#contact"
                 className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors mt-2"
                 onClick={() => setIsMenuOpen(false)}
               >

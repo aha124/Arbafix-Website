@@ -12,13 +12,13 @@ export default function Footer() {
       { label: "About Us", href: "#about" },
       { label: "How It Works", href: "#how-it-works" },
       { label: "Track Repair", href: "/track" },
-      { label: "FAQ", href: "#" },
+      { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "#contact" },
     ],
     legal: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
-      { label: "Warranty Info", href: "#" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Warranty Info", href: "/warranty" },
     ],
   };
 

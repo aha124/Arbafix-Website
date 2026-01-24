@@ -1123,7 +1123,111 @@ export async function sendFinalPaymentEmail(data: {
   }
 }
 
-// Email 8: Shipping notification when device is shipped back to customer
+// Email 8: Contact form submission to admin
+export async function sendContactFormEmail(data: {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error("ADMIN_EMAIL not configured");
+    return { success: false, error: "ADMIN_EMAIL not configured" };
+  }
+
+  console.log("[sendContactFormEmail] Called with data:", {
+    name: data.name,
+    email: data.email,
+    subject: data.subject,
+  });
+
+  const { name, email, phone, subject, message } = data;
+
+  const content = `
+    <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
+      New Contact Form Submission
+    </h2>
+
+    <!-- Subject Box -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+      <tr>
+        <td style="background-color: #eff6ff; border-radius: 8px; padding: 16px; border-left: 4px solid ${BRAND_BLUE};">
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 16px;">
+            <strong>Subject:</strong> ${subject}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Contact Info -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Contact Information</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px; width: 100px;">Name:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px; font-weight: 500;">${name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Email:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px;">
+                <a href="mailto:${email}" style="color: ${BRAND_BLUE}; text-decoration: none;">${email}</a>
+              </td>
+            </tr>
+            ${phone ? `
+            <tr>
+              <td style="padding: 4px 0; color: ${TEXT_BODY}; font-size: 14px;">Phone:</td>
+              <td style="padding: 4px 0; color: ${TEXT_DARK}; font-size: 14px;">
+                <a href="tel:${phone}" style="color: ${BRAND_BLUE}; text-decoration: none;">${phone}</a>
+              </td>
+            </tr>
+            ` : ""}
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Message -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; background-color: ${BG_LIGHT}; border-radius: 8px;">
+      <tr>
+        <td style="padding: 20px;">
+          <p style="margin: 0 0 12px 0; color: ${TEXT_DARK}; font-size: 16px; font-weight: 600;">Message</p>
+          <p style="margin: 0; color: ${TEXT_DARK}; font-size: 14px; line-height: 1.6; background-color: #ffffff; padding: 16px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: pre-wrap;">${message}</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 0; color: ${TEXT_BODY}; font-size: 14px; text-align: center;">
+      Reply directly to this email to respond to <strong style="color: ${TEXT_DARK};">${name}</strong>.
+    </p>
+  `;
+
+  try {
+    const { error } = await getResendClient().emails.send({
+      from: "Arbafix <onboarding@resend.dev>",
+      to: adminEmail,
+      replyTo: email,
+      subject: `New Contact Form: ${subject} - ${name}`,
+      html: emailWrapper(content),
+    });
+
+    if (error) {
+      console.error("[sendContactFormEmail] Resend API error:", JSON.stringify(error, null, 2));
+      return { success: false, error };
+    }
+
+    console.log("[sendContactFormEmail] Email sent successfully");
+    return { success: true };
+  } catch (error) {
+    console.error("[sendContactFormEmail] Exception caught:", error);
+    return { success: false, error };
+  }
+}
+
+// Email 9: Shipping notification when device is shipped back to customer
 export async function sendShippingNotificationEmail(data: {
   ticketNumber: string;
   customerName: string;

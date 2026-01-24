@@ -20,7 +20,7 @@ export default function Header() {
     { href: "/#how-it-works", label: "How It Works" },
     { href: "/track", label: "Track Repair" },
     { href: "/#about", label: "About" },
-    { href: "/#contact", label: "Contact" },
+    { href: "/contact", label: "Contact" },
   ];
 
   // Close dropdown when clicking outside

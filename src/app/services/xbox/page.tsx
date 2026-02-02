@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ServiceTrustBanner from "@/components/ServiceTrustBanner";
 import {
   Gamepad2,
   ChevronRight,
@@ -343,6 +344,7 @@ export default function XboxServicesPage() {
         {/* Supported Devices */}
         <section className="py-16 md:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <ServiceTrustBanner accentColor="green" />
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-text-dark">
                 Devices We Repair

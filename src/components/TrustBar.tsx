@@ -1,7 +1,17 @@
-import { Shield, Truck, Award } from "lucide-react";
+import { Shield, Truck, Award, Star } from "lucide-react";
 
 export default function TrustBar() {
   const trustItems = [
+    {
+      icon: Star,
+      title: "1,200+ Verified Reviews",
+      description: "On eBay",
+    },
+    {
+      icon: Award,
+      title: "100% Positive Rating",
+      description: "Trusted by gamers",
+    },
     {
       icon: Shield,
       title: "90-Day Warranty",
@@ -12,17 +22,12 @@ export default function TrustBar() {
       title: "Free Return Shipping",
       description: "On all repairs",
     },
-    {
-      icon: Award,
-      title: "2,500+ Repairs Completed",
-      description: "Trusted by gamers",
-    },
   ];
 
   return (
     <section className="bg-bg-light border-y border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {trustItems.map((item, index) => (
             <div
               key={index}

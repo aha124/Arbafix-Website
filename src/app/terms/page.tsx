@@ -4,8 +4,11 @@ import Footer from "@/components/Footer";
 import { FileText } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms of Service - Arbafix",
-  description: "Terms and conditions for using Arbafix console repair services. Learn about our service policies, warranty terms, and more.",
+  title: "Terms of Service | Arbafix",
+  description:
+    "Terms and conditions for using Arbafix console repair services. Service policies, warranty terms, and more.",
+  alternates: { canonical: "/terms" },
+  robots: { index: true, follow: true },
 };
 
 export default function TermsOfServicePage() {

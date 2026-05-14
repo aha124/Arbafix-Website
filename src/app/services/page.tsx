@@ -14,9 +14,17 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Console Repair Services | Arbafix - Hershey, PA",
+  title: "Console Repair Services - Nintendo, PlayStation, Xbox | Arbafix Hershey PA",
   description:
-    "Expert video game console repair services in Hershey, PA. We fix Nintendo Switch, PlayStation, Xbox, and more. Free diagnosis, 90-day warranty on all repairs.",
+    "Expert video game console repair services in Hershey, PA. We fix Nintendo Switch, PlayStation 5/4/3, Xbox Series X/S, and retro systems. Free diagnosis, 90-day warranty.",
+  alternates: { canonical: "/services" },
+  openGraph: {
+    title: "Console Repair Services - Nintendo, PlayStation, Xbox | Arbafix",
+    description:
+      "Expert video game console repair services in Hershey, PA. Free diagnosis, 90-day warranty on all repairs.",
+    url: "/services",
+    type: "website",
+  },
 };
 
 export default function ServicesPage() {

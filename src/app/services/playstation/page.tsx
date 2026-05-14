@@ -23,9 +23,17 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "PlayStation Repair Services | Arbafix - Hershey, PA",
+  title: "PlayStation Repair - PS5, PS4, PS3 HDMI & Disc Drive | Arbafix Hershey PA",
   description:
-    "Expert PlayStation repair services in Hershey, PA. We fix PS5, PS4, PS3, PS Vita, PSP and retro systems. HDMI port repair, disc drive fixes, overheating solutions. Free diagnosis.",
+    "Expert PlayStation repair in Hershey, PA. PS5 / PS4 / PS3 / Vita / PSP HDMI port repair, disc drive replacement, overheating fixes. Free diagnosis. 90-day warranty.",
+  alternates: { canonical: "/services/playstation" },
+  openGraph: {
+    title: "PlayStation Repair - PS5, PS4, PS3 HDMI & Disc Drive | Arbafix",
+    description:
+      "Expert PlayStation repair in Hershey, PA. HDMI port repair, disc drive replacement, overheating fixes. 90-day warranty.",
+    url: "/services/playstation",
+    type: "website",
+  },
 };
 
 export default function PlayStationServicesPage() {

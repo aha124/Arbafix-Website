@@ -34,6 +34,12 @@ export const metadata: Metadata = {
     url: "/services/playstation",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "PlayStation Repair - PS5, PS4, PS3 HDMI & Disc Drive | Arbafix",
+    description:
+      "Expert PlayStation repair in Hershey, PA. 90-day warranty.",
+  },
 };
 
 export default function PlayStationServicesPage() {

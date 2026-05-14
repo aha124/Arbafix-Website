@@ -33,6 +33,12 @@ export const metadata: Metadata = {
     url: "/services/nintendo",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nintendo Switch Repair - Joy-Con Drift, Screen, Charging | Arbafix",
+    description:
+      "Expert Nintendo repair in Hershey, PA. 90-day warranty.",
+  },
 };
 
 export default function NintendoServicesPage() {

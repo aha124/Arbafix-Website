@@ -34,6 +34,12 @@ export const metadata: Metadata = {
     url: "/services/xbox",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Xbox Repair - Series X/S, One, 360 HDMI & RROD Fix | Arbafix",
+    description:
+      "Expert Xbox repair in Hershey, PA. 90-day warranty.",
+  },
 };
 
 export default function XboxServicesPage() {

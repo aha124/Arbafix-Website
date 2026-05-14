@@ -35,14 +35,6 @@ export const metadata: Metadata = {
       "Expert repairs for Nintendo, PlayStation, Xbox, and retro consoles. 90-day warranty on every repair.",
     url: SITE_URL,
     siteName: "Arbafix",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Arbafix - Professional Video Game Console Repair",
-      },
-    ],
     type: "website",
     locale: "en_US",
   },
@@ -51,7 +43,6 @@ export const metadata: Metadata = {
     title: "Arbafix - Professional Video Game Console Repair",
     description:
       "Expert repairs for Nintendo, PlayStation, Xbox, and retro consoles. 90-day warranty on every repair.",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,

@@ -228,8 +228,9 @@ export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
 
   // Log the full email payload before sending
   const emailPayload = {
-    from: "Arbafix <onboarding@resend.dev>",
+    from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
+    replyTo: "repairs@arbafix.com",
     subject: `Repair Request Received - ${ticketNumber}`,
   };
   console.log("[sendCustomerConfirmationEmail] Email payload:", emailPayload);
@@ -239,6 +240,7 @@ export async function sendCustomerConfirmationEmail(data: RepairRequestData) {
     const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
+      replyTo: emailPayload.replyTo,
       subject: emailPayload.subject,
       html: emailWrapper(content),
     });
@@ -345,8 +347,9 @@ export async function sendAdminNotificationEmail(data: RepairRequestData & { req
 
   try {
     const { error } = await getResendClient().emails.send({
-      from: "Arbafix <onboarding@resend.dev>",
+      from: "Arbafix <noreply@arbafix.com>",
       to: adminEmail,
+      replyTo: "repairs@arbafix.com",
       subject: `New Repair Request - ${ticketNumber}`,
       html: emailWrapper(content),
     });
@@ -457,8 +460,9 @@ export async function sendStatusUpdateEmail(data: {
 
   // Log the full email payload before sending
   const emailPayload = {
-    from: "Arbafix <onboarding@resend.dev>",
+    from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
+    replyTo: "repairs@arbafix.com",
     subject: `Repair Update - ${ticketNumber}`,
   };
   console.log("[sendStatusUpdateEmail] Email payload:", emailPayload);
@@ -469,6 +473,7 @@ export async function sendStatusUpdateEmail(data: {
       getResendClient().emails.send({
         from: emailPayload.from,
         to: emailPayload.to,
+        replyTo: emailPayload.replyTo,
         subject: emailPayload.subject,
         html: emailWrapper(content),
       }),
@@ -605,8 +610,9 @@ export async function sendQuoteEmail(data: {
   `;
 
   const emailPayload = {
-    from: "Arbafix <onboarding@resend.dev>",
+    from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
+    replyTo: "repairs@arbafix.com",
     subject: `Your Repair Quote - ${ticketNumber}`,
   };
   console.log("[sendQuoteEmail] Email payload:", emailPayload);
@@ -615,6 +621,7 @@ export async function sendQuoteEmail(data: {
     const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
+      replyTo: emailPayload.replyTo,
       subject: emailPayload.subject,
       html: emailWrapper(content),
     });
@@ -864,8 +871,9 @@ export async function sendPaymentConfirmationEmail(data: {
   `;
 
   const emailPayload = {
-    from: "Arbafix <onboarding@resend.dev>",
+    from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
+    replyTo: "repairs@arbafix.com",
     subject: `Payment Confirmed - ${ticketNumber}`,
   };
 
@@ -873,6 +881,7 @@ export async function sendPaymentConfirmationEmail(data: {
     const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
+      replyTo: emailPayload.replyTo,
       subject: emailPayload.subject,
       html: emailWrapper(content),
     });
@@ -970,8 +979,9 @@ export async function sendAdminPaymentNotificationEmail(data: {
 
   try {
     const { error } = await getResendClient().emails.send({
-      from: "Arbafix <onboarding@resend.dev>",
+      from: "Arbafix <noreply@arbafix.com>",
       to: adminEmail,
+      replyTo: "repairs@arbafix.com",
       subject: `Payment Received - ${ticketNumber} ($${formattedAmount})`,
       html: emailWrapper(content),
     });
@@ -1096,8 +1106,9 @@ export async function sendFinalPaymentEmail(data: {
   `;
 
   const emailPayload = {
-    from: "Arbafix <onboarding@resend.dev>",
+    from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
+    replyTo: "repairs@arbafix.com",
     subject: `Final Payment Required - ${ticketNumber}`,
   };
   console.log("[sendFinalPaymentEmail] Email payload:", emailPayload);
@@ -1106,6 +1117,7 @@ export async function sendFinalPaymentEmail(data: {
     const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
+      replyTo: emailPayload.replyTo,
       subject: emailPayload.subject,
       html: emailWrapper(content),
     });
@@ -1207,7 +1219,7 @@ export async function sendContactFormEmail(data: {
 
   try {
     const { error } = await getResendClient().emails.send({
-      from: "Arbafix <onboarding@resend.dev>",
+      from: "Arbafix <noreply@arbafix.com>",
       to: adminEmail,
       replyTo: email,
       subject: `New Contact Form: ${subject} - ${name}`,
@@ -1313,8 +1325,9 @@ export async function sendShippingNotificationEmail(data: {
   `;
 
   const emailPayload = {
-    from: "Arbafix <onboarding@resend.dev>",
+    from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
+    replyTo: "repairs@arbafix.com",
     subject: `Your Device is On Its Way! - ${ticketNumber}`,
   };
   console.log("[sendShippingNotificationEmail] Email payload:", emailPayload);
@@ -1323,6 +1336,7 @@ export async function sendShippingNotificationEmail(data: {
     const { data: responseData, error } = await getResendClient().emails.send({
       from: emailPayload.from,
       to: emailPayload.to,
+      replyTo: emailPayload.replyTo,
       subject: emailPayload.subject,
       html: emailWrapper(content),
     });

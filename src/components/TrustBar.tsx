@@ -1,10 +1,10 @@
-import { Shield, Truck, Award, Star } from "lucide-react";
+import { Shield, Calendar, Award, Star } from "lucide-react";
 
 export default function TrustBar() {
   const trustItems = [
     {
       icon: Star,
-      title: "1,200+ Verified Reviews",
+      title: "1,148+ Verified Reviews",
       description: "On eBay",
     },
     {
@@ -13,14 +13,14 @@ export default function TrustBar() {
       description: "Trusted by gamers",
     },
     {
+      icon: Calendar,
+      title: "Repairing Since 2006",
+      description: "Nearly 20 years experience",
+    },
+    {
       icon: Shield,
       title: "90-Day Warranty",
       description: "Every repair guaranteed",
-    },
-    {
-      icon: Truck,
-      title: "Free Return Shipping",
-      description: "On all repairs",
     },
   ];
 

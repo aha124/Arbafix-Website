@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown, Star } from "lucide-react";
 
 export default function Hero() {
   return (
@@ -8,6 +8,11 @@ export default function Hero() {
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div>
+            {/* Above-the-fold eBay social proof */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 mb-5 rounded-full bg-yellow-50 border border-yellow-200 text-sm font-medium text-yellow-900">
+              <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+              <span>1,148+ eBay reviews · 100% positive · Since 2006</span>
+            </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-text-dark leading-tight">
               Professional Console Repair You Can Trust
             </h1>

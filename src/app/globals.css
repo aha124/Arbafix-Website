@@ -12,6 +12,13 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Reserve space for the sticky mobile CTA so it doesn't cover footer content */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

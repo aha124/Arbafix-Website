@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
+import StickyMobileCTA from "@/components/StickyMobileCTA";
 import "./globals.css";
 
 const SITE_URL =
@@ -125,6 +126,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <StickyMobileCTA />
         <Analytics />
       </body>
     </html>

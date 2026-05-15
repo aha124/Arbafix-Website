@@ -8,13 +8,15 @@ import { Calendar, ArrowRight } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Blog - Repair Tips & Gaming News | Arbafix",
+  title: "Console Repair Blog - Tips & Troubleshooting Guides | Arbafix",
   description:
     "Expert gaming console repair tips, troubleshooting guides, and the latest gaming news. Learn how to maintain your Nintendo, PlayStation, and Xbox consoles.",
+  alternates: { canonical: "/blog" },
   openGraph: {
-    title: "Blog - Repair Tips & Gaming News | Arbafix",
+    title: "Console Repair Blog - Tips & Troubleshooting Guides | Arbafix",
     description:
       "Expert gaming console repair tips, troubleshooting guides, and the latest gaming news.",
+    url: "/blog",
     type: "website",
   },
 };

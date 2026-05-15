@@ -5,8 +5,17 @@ import Footer from "@/components/Footer";
 import { ShieldCheck, CheckCircle, XCircle, Phone } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Warranty Information - Arbafix",
-  description: "Learn about Arbafix's 90-day warranty on all console repairs. We stand behind our work with comprehensive coverage on parts and labor.",
+  title: "90-Day Console Repair Warranty | Arbafix Hershey PA",
+  description:
+    "Every Arbafix console repair includes a 90-day warranty on parts and labor. Learn what's covered, what's not, and how to file a warranty claim.",
+  alternates: { canonical: "/warranty" },
+  openGraph: {
+    title: "90-Day Console Repair Warranty | Arbafix",
+    description:
+      "Every Arbafix repair includes a 90-day warranty on parts and labor.",
+    url: "/warranty",
+    type: "website",
+  },
 };
 
 export default function WarrantyPage() {

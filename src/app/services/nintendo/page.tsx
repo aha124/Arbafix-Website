@@ -22,9 +22,23 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Nintendo Switch Repair | Arbafix - Hershey, PA",
+  title: "Nintendo Switch Repair - Joy-Con Drift, Screen, Charging | Arbafix Hershey PA",
   description:
-    "Expert Nintendo repair services in Hershey, PA. We fix Switch, Switch OLED, Switch 2, 3DS, Wii, and retro systems. Joy-Con drift repair, screen replacement, and more. Free diagnosis.",
+    "Expert Nintendo repair in Hershey, PA. Switch / Switch OLED / Switch 2 Joy-Con drift fix, screen replacement, charge port repair. Also 3DS, Wii, retro. Free diagnosis. 90-day warranty.",
+  alternates: { canonical: "/services/nintendo" },
+  openGraph: {
+    title: "Nintendo Switch Repair - Joy-Con Drift, Screen, Charging | Arbafix",
+    description:
+      "Expert Nintendo repair in Hershey, PA. Joy-Con drift fix, screen replacement, charge port repair. 90-day warranty.",
+    url: "/services/nintendo",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nintendo Switch Repair - Joy-Con Drift, Screen, Charging | Arbafix",
+    description:
+      "Expert Nintendo repair in Hershey, PA. 90-day warranty.",
+  },
 };
 
 export default function NintendoServicesPage() {

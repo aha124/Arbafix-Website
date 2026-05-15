@@ -4,9 +4,14 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { prisma } from "@/lib/db";
-import { Calendar, ArrowLeft, ArrowRight } from "lucide-react";
+import { Calendar, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://arbafix.com";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -62,11 +67,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${title} | Arbafix Blog`,
     description,
+    alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
       title: `${title} | Arbafix Blog`,
       description,
       type: "article",
+      url: `/blog/${post.slug}`,
       publishedTime: post.publishedAt?.toISOString(),
+      modifiedTime: post.updatedAt?.toISOString(),
       images: post.coverImage ? [post.coverImage] : undefined,
     },
     twitter: {
@@ -97,8 +105,42 @@ export default async function BlogPostPage({ params }: Props) {
 
   const relatedPosts = await getRelatedPosts(slug);
 
+  const wasUpdatedAfterPublish =
+    post.updatedAt && post.publishedAt
+      ? post.updatedAt.getTime() - post.publishedAt.getTime() >
+        24 * 60 * 60 * 1000
+      : false;
+
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.metaDescription || post.excerpt || undefined,
+    image: post.coverImage ? [post.coverImage] : undefined,
+    datePublished: post.publishedAt?.toISOString(),
+    dateModified: post.updatedAt?.toISOString() || post.publishedAt?.toISOString(),
+    author: {
+      "@type": "Organization",
+      name: "Arbafix",
+      url: SITE_URL,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Arbafix",
+      url: SITE_URL,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/blog/${post.slug}`,
+    },
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <Header />
 
       <article className="py-12 md:py-16">
@@ -125,11 +167,21 @@ export default async function BlogPostPage({ params }: Props) {
 
           {/* Article Header */}
           <header className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-text-body mb-4">
-              <Calendar className="w-4 h-4" />
-              <time dateTime={post.publishedAt?.toISOString()}>
-                {formatDate(post.publishedAt)}
-              </time>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-body mb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <time dateTime={post.publishedAt?.toISOString()}>
+                  Published {formatDate(post.publishedAt)}
+                </time>
+              </div>
+              {wasUpdatedAfterPublish && (
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  <time dateTime={post.updatedAt.toISOString()}>
+                    Last updated {formatDate(post.updatedAt)}
+                  </time>
+                </div>
+              )}
             </div>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-text-dark leading-tight">
               {post.title}

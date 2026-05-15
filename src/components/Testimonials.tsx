@@ -99,7 +99,7 @@ export default function Testimonials() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-primary hover:text-primary-dark font-semibold transition-colors"
           >
-            See all 1,200+ reviews on eBay
+            See all 1,148+ reviews on eBay
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>

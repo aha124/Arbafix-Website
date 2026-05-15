@@ -5,8 +5,17 @@ import Footer from "@/components/Footer";
 import { HelpCircle, Clock, Shield, Package, CreditCard, Search, RefreshCw, Droplets } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "FAQ - Arbafix",
-  description: "Frequently asked questions about Arbafix console repair services. Learn about our repair process, warranty, shipping, and payment options.",
+  title: "Console Repair FAQ - Process, Warranty, Shipping | Arbafix Hershey PA",
+  description:
+    "Frequently asked questions about Arbafix console repair. Turnaround time, 90-day warranty, mail-in shipping process, payment options, and more.",
+  alternates: { canonical: "/faq" },
+  openGraph: {
+    title: "Console Repair FAQ | Arbafix",
+    description:
+      "FAQs about Arbafix console repair: turnaround, warranty, shipping, and payment.",
+    url: "/faq",
+    type: "website",
+  },
 };
 
 export default function FAQPage() {

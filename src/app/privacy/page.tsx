@@ -4,8 +4,11 @@ import Footer from "@/components/Footer";
 import { Shield } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - Arbafix",
-  description: "Learn how Arbafix collects, uses, and protects your personal information when you use our console repair services.",
+  title: "Privacy Policy | Arbafix",
+  description:
+    "How Arbafix collects, uses, and protects your personal information when you use our console repair services.",
+  alternates: { canonical: "/privacy" },
+  robots: { index: true, follow: true },
 };
 
 export default function PrivacyPolicyPage() {

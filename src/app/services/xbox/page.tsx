@@ -23,9 +23,23 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Xbox Repair Services | Arbafix - Hershey, PA",
+  title: "Xbox Repair - Series X/S, One, 360 HDMI & RROD Fix | Arbafix Hershey PA",
   description:
-    "Expert Xbox repair services in Hershey, PA. We fix Series X, Series S, Xbox One, Xbox 360, and Original Xbox. HDMI repair, RROD fixes, disc drive issues. Free diagnosis.",
+    "Expert Xbox repair in Hershey, PA. Series X/S, Xbox One, Xbox 360, Original Xbox HDMI port repair, RROD fix, disc drive replacement. Free diagnosis. 90-day warranty.",
+  alternates: { canonical: "/services/xbox" },
+  openGraph: {
+    title: "Xbox Repair - Series X/S, One, 360 HDMI & RROD Fix | Arbafix",
+    description:
+      "Expert Xbox repair in Hershey, PA. HDMI port repair, RROD fix, disc drive replacement. 90-day warranty.",
+    url: "/services/xbox",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Xbox Repair - Series X/S, One, 360 HDMI & RROD Fix | Arbafix",
+    description:
+      "Expert Xbox repair in Hershey, PA. 90-day warranty.",
+  },
 };
 
 export default function XboxServicesPage() {

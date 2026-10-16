@@ -40,7 +40,11 @@ export async function POST(
       }
     }
 
-    const finalSubject = (subject && String(subject).trim()) || `Your repair request ${ticket.ticketNumber}`;
+    let finalSubject = (subject && String(subject).trim()) || `Your repair request ${ticket.ticketNumber}`;
+    // Keep the ticket number in the subject so customer replies match back to this ticket.
+    if (!finalSubject.toUpperCase().includes(ticket.ticketNumber)) {
+      finalSubject = `${finalSubject} (${ticket.ticketNumber})`;
+    }
 
     if (sendAs === "quote") {
       await createAndSendQuote({

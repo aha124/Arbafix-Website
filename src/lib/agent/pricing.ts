@@ -49,6 +49,20 @@ export const SERVICES: ServicePrice[] = [
     notes: "Price is per Joy-Con. Hall-effect sticks use magnets instead of a worn contact pad, so they don't develop drift again. Joy-Cons only; not Switch Lite sticks.",
   },
   {
+    id: "og-xbox-drive-service",
+    devices: ["Original Xbox (2001)"],
+    service: "Disc drive service: clean lens, replace tray belt, tune laser",
+    price: 49.99,
+    notes: "Fixes most 'won't read games' and 'tray won't open/close' cases. Quote this first. Before quoting, ask: does the tray open and close, does the disc spin, and does it fail on every original game or only some/burned discs. Clock capacitor removal included free.",
+  },
+  {
+    id: "og-xbox-drive-replacement",
+    devices: ["Original Xbox (2001)"],
+    service: "Disc drive replacement with a tested used drive",
+    price: 129.99,
+    notes: "Only if the service above doesn't fix it, or the laser is dead. Drives are no longer made, so this is a tested used pull. If the customer already paid for the drive service, contact them before upgrading to a replacement. Clock capacitor removal included free.",
+  },
+  {
     id: "no-power-diagnosis",
     devices: ["Any console"],
     service: "No-power diagnosis",

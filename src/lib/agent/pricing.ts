@@ -17,14 +17,15 @@ export const SERVICES: ServicePrice[] = [
     id: "hdmi-port",
     devices: ["PS4", "PS4 Slim", "PS4 Pro", "PS5", "Xbox One", "Xbox One S", "Xbox One X", "Xbox Series X", "Xbox Series S"],
     service: "HDMI port replacement",
-    price: null,
+    price: 85,
     notes: "No video / no signal / bent or loose HDMI port. If the port looks fine, the retimer/encoder chip may be the cause; quote port only and say chip work is extra if found.",
   },
   {
     id: "switch-usbc-port",
     devices: ["Nintendo Switch", "Nintendo Switch OLED", "Nintendo Switch Lite"],
     service: "USB-C charging port replacement",
-    price: null,
+    price: 69.99,
+    notes: "If the port checks out fine on the bench, the charging IC is the likely cause (same price). If both are bad, we contact the customer before doing extra work.",
   },
   {
     id: "switch-charging-ic",
@@ -43,8 +44,9 @@ export const SERVICES: ServicePrice[] = [
   {
     id: "joycon-drift",
     devices: ["Joy-Con"],
-    service: "Joy-Con analog stick replacement (drift)",
-    price: null,
+    service: "Joy-Con analog stick replacement (drift), Hall-effect stick",
+    price: 29.99,
+    notes: "Price is per Joy-Con. Hall-effect sticks use magnets instead of a worn contact pad, so they don't develop drift again. Joy-Cons only; not Switch Lite sticks.",
   },
   {
     id: "no-power-diagnosis",

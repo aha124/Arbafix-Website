@@ -94,23 +94,32 @@ ${t.issueDescription}
 ${history}
 </email_history>
 
-Decide the next step and call submit_draft.`;
+Decide the next step and call the submit_draft tool. Always respond by calling submit_draft.`;
 }
 
 export async function generateDraft(requestId: string) {
   const ticket = await loadTicket(requestId);
   if (!ticket) throw new Error("Repair request not found");
 
-  const response = await getClient().messages.create({
-    model: MODEL,
-    max_tokens: 1500,
-    system: SYSTEM_PROMPT,
-    tools: [DRAFT_TOOL],
-    tool_choice: { type: "tool", name: "submit_draft" },
-    messages: [{ role: "user", content: buildTicketPrompt(ticket) }],
-  });
-
-  const toolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+  // Some models don't accept a forced tool_choice, so let the model choose
+  // and ask again once if it answers in plain text instead of calling the tool.
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: buildTicketPrompt(ticket) }];
+  let toolUse: Anthropic.ToolUseBlock | undefined;
+  for (let attempt = 0; attempt < 2 && !toolUse; attempt++) {
+    const response = await getClient().messages.create({
+      model: MODEL,
+      max_tokens: 4000,
+      system: SYSTEM_PROMPT,
+      tools: [DRAFT_TOOL],
+      tool_choice: { type: "auto" },
+      messages,
+    });
+    toolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+    if (!toolUse) {
+      messages.push({ role: "assistant", content: response.content });
+      messages.push({ role: "user", content: "Call the submit_draft tool with your decision. Do not reply in plain text." });
+    }
+  }
   if (!toolUse) throw new Error("Agent did not return a draft");
   const d = toolUse.input as DraftInput;
 

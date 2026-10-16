@@ -62,6 +62,53 @@ function emailWrapper(content: string): string {
   `.trim();
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Turns a plain-text email body into escaped paragraphs.
+function plainTextToHtml(text: string): string {
+  return text
+    .trim()
+    .split(/\n{2,}/)
+    .map(
+      (para) =>
+        `<p style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 16px; line-height: 1.6;">${escapeHtml(para).replace(/\n/g, "<br>")}</p>`
+    )
+    .join("\n");
+}
+
+// Plain message to the customer (used by the repair agent for questions and answers).
+export async function sendTicketMessageEmail(data: {
+  customerEmail: string;
+  subject: string;
+  body: string;
+}) {
+  try {
+    const { error } = await getResendClient().emails.send({
+      from: "Arbafix <noreply@arbafix.com>",
+      to: data.customerEmail,
+      replyTo: "repairs@arbafix.com",
+      subject: data.subject,
+      html: emailWrapper(plainTextToHtml(data.body)),
+      text: data.body,
+    });
+    if (error) {
+      console.error("[sendTicketMessageEmail] Resend API error:", JSON.stringify(error, null, 2));
+      return { success: false, error };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error("[sendTicketMessageEmail] Exception caught:", error);
+    return { success: false, error };
+  }
+}
+
 // Status display names and descriptions
 const STATUS_INFO: Record<string, { label: string; description: string; nextSteps: string }> = {
   PENDING: {
@@ -505,6 +552,8 @@ export async function sendQuoteEmail(data: {
   depositPercent: number; // percentage (25, 50, 75, 100)
   depositAmount: number; // in cents
   paymentUrl: string;
+  personalNote?: string; // optional plain-text note shown above the quote
+  subject?: string;
 }) {
   console.log("[sendQuoteEmail] Called with data:", {
     ticketNumber: data.ticketNumber,
@@ -525,6 +574,7 @@ export async function sendQuoteEmail(data: {
     depositPercent,
     depositAmount,
     paymentUrl,
+    personalNote,
   } = data;
 
   const formattedQuote = (quoteAmount / 100).toFixed(2);
@@ -535,12 +585,13 @@ export async function sendQuoteEmail(data: {
     <h2 style="margin: 0 0 16px 0; color: ${TEXT_DARK}; font-size: 24px; font-weight: 600;">
       Your Repair Quote is Ready
     </h2>
+    ${personalNote ? plainTextToHtml(personalNote) : `
     <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
       Hi ${customerName},
     </p>
     <p style="margin: 0 0 24px 0; color: ${TEXT_BODY}; font-size: 16px; line-height: 1.6;">
       We've reviewed your repair request and prepared a quote for you.
-    </p>
+    </p>`}
 
     <!-- Ticket Number Box -->
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
@@ -613,7 +664,7 @@ export async function sendQuoteEmail(data: {
     from: "Arbafix <noreply@arbafix.com>",
     to: customerEmail,
     replyTo: "repairs@arbafix.com",
-    subject: `Your Repair Quote - ${ticketNumber}`,
+    subject: data.subject || `Your Repair Quote - ${ticketNumber}`,
   };
   console.log("[sendQuoteEmail] Email payload:", emailPayload);
 

@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import AgentPanel from "@/components/admin/AgentPanel";
 
 interface RepairRequest {
   id: string;
@@ -461,6 +462,9 @@ export default function RequestDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Repair agent */}
+            <AgentPanel requestId={request.id} onSent={fetchRequest} />
+
             {/* Device Info */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold text-text-dark mb-4">Device Information</h2>

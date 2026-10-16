@@ -42,6 +42,43 @@ model RepairRequest {
   // Shippo return label
   labelUrl         String?
   trackingUrl      String?
+
+  // Repair agent conversation and drafts
+  messages         TicketMessage[]
+  agentDrafts      AgentDraft[]
+}
+
+// Every email exchanged with the customer about a ticket, in order.
+model TicketMessage {
+  id         String        @id @default(cuid())
+  requestId  String
+  request    RepairRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  // INBOUND = from customer, OUTBOUND = sent by Arbafix
+  direction  String
+  body       String
+  createdAt  DateTime      @default(now())
+
+  @@index([requestId, createdAt])
+}
+
+// A reply drafted by the repair agent, waiting for admin review.
+model AgentDraft {
+  id             String        @id @default(cuid())
+  requestId      String
+  request        RepairRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  // QUESTIONS = ask the customer for info, QUOTE = send a priced quote,
+  // ANSWER = reply to a customer question, ESCALATE = needs Anthony (no reply drafted)
+  kind           String
+  subject        String?
+  emailBody      String?
+  quoteAmount    Int?          // cents, only for QUOTE
+  depositPercent Int?          // only for QUOTE
+  internalNote   String        // agent's reasoning for the admin, never sent
+  // DRAFT, SENT, DISCARDED
+  status         String        @default("DRAFT")
+  createdAt      DateTime      @default(now())
+
+  @@index([requestId, createdAt])
 }
 
 model BlogPost {

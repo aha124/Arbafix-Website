@@ -4,6 +4,8 @@ import {
   sendCustomerConfirmationEmail,
   sendAdminNotificationEmail,
 } from "@/lib/email";
+import { generateDraft } from "@/lib/agent/repairAgent";
+import { waitUntil } from "@vercel/functions";
 
 function generateTicketNumber(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -99,6 +101,15 @@ export async function POST(request: NextRequest) {
     ]).catch((error) => {
       console.error("Error sending confirmation emails:", error);
     });
+
+    // Draft the first reply in the background so it's waiting in the dashboard.
+    if (process.env.ANTHROPIC_API_KEY) {
+      waitUntil(
+        generateDraft(repairRequest.id).catch((error) => {
+          console.error("Error generating agent draft:", error);
+        })
+      );
+    }
 
     return NextResponse.json(
       {

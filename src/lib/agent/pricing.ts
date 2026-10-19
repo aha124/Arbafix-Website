@@ -42,6 +42,13 @@ export const SERVICES: ServicePrice[] = [
     notes: "No MacBooks.",
   },
   {
+    id: "usb-a-port",
+    devices: ["Windows laptop", "Chromebook", "Any console", "Other"],
+    service: "USB-A port replacement",
+    price: 69.99,
+    notes: "Damaged, loose or dead USB-A port. Before quoting, confirm the device make and model if the request says 'Other' or doesn't name it. Price covers one port; if the port's board-side circuitry is damaged, we contact the customer before doing extra work. No MacBooks.",
+  },
+  {
     id: "joycon-drift",
     devices: ["Joy-Con"],
     service: "Joy-Con analog stick replacement (drift), Hall-effect stick",

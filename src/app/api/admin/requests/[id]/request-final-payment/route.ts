@@ -3,15 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { sendFinalPaymentEmail } from "@/lib/email";
-import Stripe from "stripe";
-
-// Lazy initialization to avoid build-time errors when env vars aren't available
-function getStripeClient(): Stripe {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error("STRIPE_SECRET_KEY is not configured");
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
-}
+import { createCheckoutSession, getPayUrl } from "@/lib/checkout";
 
 export async function POST(
   request: NextRequest,
@@ -85,34 +77,16 @@ export async function POST(
       );
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://arbafix.com';
-
     // Create Stripe Checkout Session for the remaining balance
-    const stripeSession = await getStripeClient().checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Final Payment - ${repairRequest.ticketNumber}`,
-              description: `${repairRequest.deviceType} repair - Remaining balance`,
-            },
-            unit_amount: remainingBalance,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${baseUrl}/payment/success?ticket=${repairRequest.ticketNumber}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/payment/cancelled?ticket=${repairRequest.ticketNumber}`,
-      customer_email: repairRequest.customerEmail,
-      metadata: {
-        ticketNumber: repairRequest.ticketNumber,
-        type: "final",
-        repairRequestId: repairRequest.id,
-      },
+    const stripeSession = await createCheckoutSession({
+      ticketNumber: repairRequest.ticketNumber,
+      repairRequestId: repairRequest.id,
+      customerEmail: repairRequest.customerEmail,
+      deviceType: repairRequest.deviceType,
+      amount: remainingBalance,
+      type: "final",
     });
+    const paymentUrl = getPayUrl(repairRequest.ticketNumber);
 
     // Update the repair request to indicate payment has been requested
     await prisma.repairRequest.update({
@@ -132,7 +106,7 @@ export async function POST(
       quoteAmount: repairRequest.quoteAmount,
       depositPaid: amountPaid,
       remainingBalance,
-      paymentUrl: stripeSession.url!,
+      paymentUrl,
     });
 
     if (!emailResult.success) {
@@ -142,7 +116,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      paymentUrl: stripeSession.url,
+      paymentUrl,
       remainingBalance,
       message: "Final payment request sent successfully",
     });

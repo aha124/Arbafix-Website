@@ -1,14 +1,6 @@
-import Stripe from "stripe";
 import { prisma } from "@/lib/db";
 import { sendQuoteEmail } from "@/lib/email";
-
-// Lazy initialization to avoid build-time errors when env vars aren't available
-function getStripeClient(): Stripe {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error("STRIPE_SECRET_KEY is not configured");
-  }
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
-}
+import { createCheckoutSession, getPayUrl } from "@/lib/checkout";
 
 export class QuoteError extends Error {
   status: number;
@@ -45,33 +37,17 @@ export async function createAndSendQuote(opts: {
     throw new QuoteError("This request has already been paid in full");
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://arbafix.com";
   const paymentType = depositPercent === 100 ? "full" : "deposit";
+  const paymentUrl = getPayUrl(repairRequest.ticketNumber);
 
-  const stripeSession = await getStripeClient().checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `Repair ${paymentType === "deposit" ? "Deposit" : "Payment"} - ${repairRequest.ticketNumber}`,
-            description: `${repairRequest.deviceType} repair - ${paymentType === "deposit" ? `${depositPercent}% Deposit` : "Full payment"}`,
-          },
-          unit_amount: depositAmount,
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    success_url: `${baseUrl}/payment/success?ticket=${repairRequest.ticketNumber}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/payment/cancelled?ticket=${repairRequest.ticketNumber}`,
-    customer_email: repairRequest.customerEmail,
-    metadata: {
-      ticketNumber: repairRequest.ticketNumber,
-      type: paymentType,
-      repairRequestId: repairRequest.id,
-    },
+  const stripeSession = await createCheckoutSession({
+    ticketNumber: repairRequest.ticketNumber,
+    repairRequestId: repairRequest.id,
+    customerEmail: repairRequest.customerEmail,
+    deviceType: repairRequest.deviceType,
+    amount: depositAmount,
+    type: paymentType,
+    depositPercent,
   });
 
   await prisma.repairRequest.update({
@@ -95,7 +71,7 @@ export async function createAndSendQuote(opts: {
     quoteAmount,
     depositPercent,
     depositAmount,
-    paymentUrl: stripeSession.url!,
+    paymentUrl,
     personalNote,
     subject,
   });
@@ -104,5 +80,5 @@ export async function createAndSendQuote(opts: {
     console.error("[createAndSendQuote] Failed to send quote email:", emailResult.error);
   }
 
-  return { paymentUrl: stripeSession.url, emailSent: emailResult.success };
+  return { paymentUrl, emailSent: emailResult.success };
 }

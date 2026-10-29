@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { waitUntil } from "@vercel/functions";
 import { prisma } from "@/lib/db";
 import { sendPaymentConfirmationEmail, sendAdminPaymentNotificationEmail } from "@/lib/email";
 
@@ -65,6 +66,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Repair request not found" }, { status: 404 });
       }
 
+      // Stripe retries until it gets a 2xx, so the same payment can arrive more than once.
+      // Skip it if this payment was already recorded, so amountPaid isn't counted twice.
+      if (session.payment_intent && repairRequest.stripePaymentId === session.payment_intent) {
+        console.log(`[Stripe Webhook] Payment already recorded for ${ticketNumber}, skipping`);
+        return NextResponse.json({ received: true, ticketNumber, duplicate: true });
+      }
+
       // Determine payment status and new repair status
       const amountPaid = session.amount_total || 0;
       const quoteAmount = repairRequest.quoteAmount || 0;
@@ -108,8 +116,9 @@ export async function POST(request: NextRequest) {
         status: newRepairStatus,
       });
 
-      // Send confirmation emails (non-blocking)
-      Promise.all([
+      // Send confirmation emails after responding. waitUntil keeps the function alive until
+      // they finish; a bare promise can be dropped once the response is sent on Vercel.
+      waitUntil(Promise.all([
         sendPaymentConfirmationEmail({
           ticketNumber,
           customerName: repairRequest.customerName,
@@ -131,7 +140,7 @@ export async function POST(request: NextRequest) {
         }),
       ]).catch((err) => {
         console.error("[Stripe Webhook] Error sending confirmation emails:", err);
-      });
+      }));
 
       return NextResponse.json({ received: true, ticketNumber, status: newPaymentStatus });
     }

@@ -70,6 +70,20 @@ export const SERVICES: ServicePrice[] = [
     notes: "Only if the service above doesn't fix it, or the laser is dead. Drives are no longer made, so this is a tested used pull. If the customer already paid for the drive service, contact them before upgrading to a replacement. Clock capacitor removal included free.",
   },
   {
+    id: "vita-thumbstick",
+    devices: ["PS Vita 1000", "PS Vita 2000"],
+    service: "PS Vita analog stick replacement",
+    price: 39.99,
+    notes: "Price is per stick. If the customer says 'thumbsticks' or doesn't say which, ask whether one or both sticks are bad and quote $39.99 per stick.",
+  },
+  {
+    id: "ps5-cleaning",
+    devices: ["PS5", "PS5 Slim", "PS5 Pro"],
+    service: "PS5 internal cleaning (fan, heatsink, vents, dust shield)",
+    price: 79.99,
+    notes: "For overheating, loud fan, or shutting off during games. Use a 25% deposit. PS5s use factory liquid metal; if the bench shows it needs redoing, we contact the customer with a price before doing that work. Before quoting, ask: how long it runs before shutting off, whether it's only certain games, whether the fan is loud, and whether it has been opened before.",
+  },
+  {
     id: "no-power-diagnosis",
     devices: ["Any console"],
     service: "No-power diagnosis",

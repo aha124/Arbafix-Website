@@ -145,6 +145,10 @@ export default function RequestDetailPage() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingCarrier, setTrackingCarrier] = useState("");
 
+  // Return label package size (inches / lb)
+  const [parcel, setParcel] = useState({ length: "", width: "", height: "", weight: "" });
+  const parcelComplete = Object.values(parcel).every((v) => Number(v) > 0);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/admin/login");
@@ -292,11 +296,18 @@ export default function RequestDetailPage() {
   const handleGenerateLabel = async () => {
     if (!request) return;
 
+    if (!parcelComplete) {
+      showMessage("error", "Enter the packed box size and weight first");
+      return;
+    }
+
     setActionLoading("generate-label");
 
     try {
       const res = await fetch(`/api/admin/requests/${request.id}/generate-label`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parcel),
       });
 
       const data = await res.json();
@@ -763,9 +774,39 @@ export default function RequestDetailPage() {
 
                 {/* PAID_IN_FULL -> Generate shipping label or show label info */}
                 {request.paymentStatus === "PAID_IN_FULL" && !request.labelUrl && (
+                  <div className="space-y-3">
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-sm text-gray-700">
+                      <p className="font-medium text-gray-900 mb-1">Ships to</p>
+                      <p>{request.customerName}</p>
+                      <p>{request.shippingAddress}</p>
+                      <p>
+                        {request.shippingCity}, {request.shippingState} {request.shippingZip}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 mb-2">Packed box (in) and weight (lb)</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {(["length", "width", "height", "weight"] as const).map((field) => (
+                          <label key={field} className="block">
+                            <span className="block text-xs text-gray-500 mb-1 capitalize">
+                              {field === "weight" ? "Weight" : field}
+                            </span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.1"
+                              value={parcel[field]}
+                              onChange={(e) => setParcel((p) => ({ ...p, [field]: e.target.value }))}
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   <button
                     onClick={handleGenerateLabel}
-                    disabled={actionLoading === "generate-label"}
+                    disabled={actionLoading === "generate-label" || !parcelComplete}
                     className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {actionLoading === "generate-label" ? (
@@ -782,6 +823,7 @@ export default function RequestDetailPage() {
                       </>
                     )}
                   </button>
+                  </div>
                 )}
 
                 {/* Show label info when label exists */}

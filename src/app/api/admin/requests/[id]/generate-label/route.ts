@@ -13,6 +13,29 @@ function getShippoClient(): Shippo {
   return new Shippo({ apiKeyHeader: process.env.SHIPPO_API_KEY });
 }
 
+const DEFAULT_PARCEL = { length: "10", width: "8", height: "4", weight: "2" };
+
+type Parcel = { length: string; width: string; height: string; weight: string };
+
+// Reads optional { length, width, height, weight } (inches / lb) from the request body.
+function parseParcel(body: unknown): Parcel | { error: string } {
+  const input = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+  const fields = ["length", "width", "height", "weight"] as const;
+  const parcel = { ...DEFAULT_PARCEL };
+
+  for (const field of fields) {
+    const raw = input[field];
+    if (raw === undefined || raw === null || raw === "") continue;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value <= 0 || value > 150) {
+      return { error: `Package ${field} must be a number greater than 0` };
+    }
+    parcel[field] = String(value);
+  }
+
+  return parcel;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -25,6 +48,14 @@ export async function POST(
     }
 
     const { id } = await params;
+
+    // Package size comes from the dashboard; fall back to the old small-box
+    // defaults only when nothing is sent.
+    const body = await request.json().catch(() => ({}));
+    const parcel = parseParcel(body);
+    if ("error" in parcel) {
+      return NextResponse.json({ error: parcel.error }, { status: 400 });
+    }
 
     // Get the repair request
     const repairRequest = await prisma.repairRequest.findUnique({
@@ -72,6 +103,9 @@ export async function POST(
         state: process.env.BUSINESS_ADDRESS_STATE || "PA",
         zip: process.env.BUSINESS_ADDRESS_ZIP || "17033",
         country: "US",
+        // USPS rejects the label purchase without a sender email.
+        email: process.env.BUSINESS_EMAIL || "repairs@arbafix.com",
+        ...(process.env.BUSINESS_PHONE ? { phone: process.env.BUSINESS_PHONE } : {}),
       },
       addressTo: {
         name: repairRequest.customerName,
@@ -80,14 +114,15 @@ export async function POST(
         state: repairRequest.shippingState,
         zip: repairRequest.shippingZip,
         country: "US",
+        email: repairRequest.customerEmail,
       },
       parcels: [
         {
-          length: "10",
-          width: "8",
-          height: "4",
+          length: parcel.length,
+          width: parcel.width,
+          height: parcel.height,
           distanceUnit: "in",
-          weight: "2",
+          weight: parcel.weight,
           massUnit: "lb",
         },
       ],
@@ -128,8 +163,17 @@ export async function POST(
 
     if (transaction.status !== "SUCCESS") {
       console.error("[generate-label] Label purchase failed:", transaction.messages);
+      const reason = transaction.messages
+        ?.map((m) => m.text)
+        .filter(Boolean)
+        .join(" ");
       return NextResponse.json(
-        { error: "Failed to purchase shipping label", details: transaction.messages },
+        {
+          error: reason
+            ? `Failed to purchase shipping label: ${reason}`
+            : "Failed to purchase shipping label",
+          details: transaction.messages,
+        },
         { status: 500 }
       );
     }

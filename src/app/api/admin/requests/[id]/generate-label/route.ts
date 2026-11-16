@@ -171,7 +171,8 @@ export async function POST(
     // Purchase the label
     const transaction = await shippo.transactions.create({
       rate: cheapestRate.objectId,
-      labelFileType: "PDF",
+      // 4x6 so it prints straight to the thermal label printer.
+      labelFileType: "PDF_4x6",
       async: false,
     });
 

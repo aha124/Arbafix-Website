@@ -148,6 +148,9 @@ export default function RequestDetailPage() {
   // Return label package size (inches / lb)
   const [parcel, setParcel] = useState({ length: "", width: "", height: "", weight: "" });
   const parcelComplete = Object.values(parcel).every((v) => Number(v) > 0);
+  // Shown next to the button and kept until the next attempt, so a failed
+  // label purchase can't be missed.
+  const [labelError, setLabelError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -302,6 +305,7 @@ export default function RequestDetailPage() {
     }
 
     setActionLoading("generate-label");
+    setLabelError(null);
 
     try {
       const res = await fetch(`/api/admin/requests/${request.id}/generate-label`, {
@@ -316,11 +320,16 @@ export default function RequestDetailPage() {
         showMessage("success", "Shipping label generated successfully! Customer has been notified.");
         fetchRequest();
       } else {
-        showMessage("error", data.error || "Failed to generate shipping label");
+        const text = data.error || "Failed to generate shipping label";
+        showMessage("error", text);
+        setLabelError(text);
       }
     } catch (error) {
       console.error("Error generating label:", error);
       showMessage("error", "Failed to generate shipping label");
+      setLabelError(
+        "No response from the server, so the label may or may not have been purchased. Refresh this page and check Shippo before trying again."
+      );
     } finally {
       setActionLoading(null);
     }
@@ -823,6 +832,11 @@ export default function RequestDetailPage() {
                       </>
                     )}
                   </button>
+                  {labelError && (
+                    <div role="alert" className="p-3 rounded-lg bg-red-50 text-red-800 border border-red-200 text-sm">
+                      {labelError}
+                    </div>
+                  )}
                   </div>
                 )}
 

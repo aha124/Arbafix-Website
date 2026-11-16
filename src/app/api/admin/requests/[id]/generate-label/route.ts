@@ -92,6 +92,19 @@ export async function POST(
       );
     }
 
+    // USPS rejects the label purchase without a sender phone. Stop here, before
+    // anything is bought, if it is missing.
+    const businessPhone = (process.env.BUSINESS_PHONE || "").replace(/\D/g, "");
+    if (businessPhone.length < 10) {
+      return NextResponse.json(
+        { error: "Business phone is not configured. Set BUSINESS_PHONE in environment variables (USPS requires a sender phone)." },
+        { status: 500 }
+      );
+    }
+
+    // Recipient phone is optional for domestic USPS; send it only if the customer gave one.
+    const customerPhone = (repairRequest.customerPhone || "").replace(/\D/g, "");
+
     const shippo = getShippoClient();
 
     // Create Shippo shipment
@@ -103,9 +116,9 @@ export async function POST(
         state: process.env.BUSINESS_ADDRESS_STATE || "PA",
         zip: process.env.BUSINESS_ADDRESS_ZIP || "17033",
         country: "US",
-        // USPS rejects the label purchase without a sender email.
+        // USPS rejects the label purchase without a sender email and phone.
         email: process.env.BUSINESS_EMAIL || "repairs@arbafix.com",
-        ...(process.env.BUSINESS_PHONE ? { phone: process.env.BUSINESS_PHONE } : {}),
+        phone: businessPhone,
       },
       addressTo: {
         name: repairRequest.customerName,
@@ -115,6 +128,7 @@ export async function POST(
         zip: repairRequest.shippingZip,
         country: "US",
         email: repairRequest.customerEmail,
+        ...(customerPhone.length >= 10 ? { phone: customerPhone } : {}),
       },
       parcels: [
         {
@@ -170,8 +184,8 @@ export async function POST(
       return NextResponse.json(
         {
           error: reason
-            ? `Failed to purchase shipping label: ${reason}`
-            : "Failed to purchase shipping label",
+            ? `Label not purchased. Carrier said: ${reason}`
+            : "Label not purchased.",
           details: transaction.messages,
         },
         { status: 500 }
